@@ -1,0 +1,43 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // .NET Framework (net481) wird mit dem "clr" Debugger debuggt, nicht mit "coreclr"
+      "name": "Einzelnes Projekt exportieren",
+      "type": "clr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/EplanElectricP8Api/bin/Debug/net481/EplanElectricP8Api.exe",
+      "args": ["export", "${input:projectPath}", "--output", "${input:outputFolder}"],
+      "cwd": "${workspaceFolder}/src/EplanElectricP8Api/bin/Debug/net481",
+      "console": "integratedTerminal",
+      "stopAtEntry": false,
+      "justMyCode": true
+    },
+    {
+      "name": "Export-Lauf sofort (run --now)",
+      "type": "clr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/EplanElectricP8Api/bin/Debug/net481/EplanElectricP8Api.exe",
+      "args": ["run", "--now"],
+      "cwd": "${workspaceFolder}/src/EplanElectricP8Api/bin/Debug/net481",
+      "console": "integratedTerminal",
+      "stopAtEntry": false,
+      "justMyCode": true
+    }
+  ],
+  "inputs": [
+    {
+      "id": "projectPath",
+      "type": "promptString",
+      "description": "Pfad zur EPLAN Projektdatei (.elk)"
+    },
+    {
+      "id": "outputFolder",
+      "type": "promptString",
+      "description": "Ausgabeordner für die Exporte",
+      "default": "${workspaceFolder}/export"
+    }
+  ]
+}
