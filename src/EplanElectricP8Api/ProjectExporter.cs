@@ -153,14 +153,15 @@ namespace EplanElectricP8Api
 
         private void ExportConnections(Project project, string projectName, string projectOutput, ExportResult result)
         {
-            string destinationFile = Path.Combine(projectOutput, projectName + "_Verbindungen.csv");
+            string destinationFile = Path.Combine(projectOutput, projectName + "_Verbindungen.xlsx");
             try
             {
-                int count = ConnectionExporter.Export(project, destinationFile, out int marked, out int unmatchedMarks);
-                _logger.LogInformation("  Verbindungen: OK ({Count}, davon {Marked} mit #) -> {File}", count, marked, destinationFile);
-                if (unmatchedMarks > 0)
+                var export = ConnectionExporter.Export(project, destinationFile);
+                _logger.LogInformation("  Verbindungen: OK ({Count}, davon {Marked} mit #, {Twisted} verdrillt, {Shielded} abgeschirmt an {Shields} Schirm(en)) -> {File}",
+                    export.Count, export.Marked, export.Twisted, export.Shielded, export.Shields, destinationFile);
+                if (export.UnmatchedMarks > 0)
                 {
-                    _logger.LogWarning("  Verbindungen: {Unmatched} #-Markierung(en) konnten keiner Verbindung zugeordnet werden", unmatchedMarks);
+                    _logger.LogWarning("  Verbindungen: {Unmatched} #-Markierung(en) konnten keiner Verbindung zugeordnet werden", export.UnmatchedMarks);
                 }
                 result.Files.Add(destinationFile);
             }

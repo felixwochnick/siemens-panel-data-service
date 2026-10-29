@@ -1,7 +1,7 @@
 # EPLAN Electric P8 Export
 
 Konsolenanwendung bzw. Windows-Dienst, der EPLAN Electric P8 Projekte ohne Benutzeroberfläche öffnet und die
-**Verbindungen** als CSV-Datei exportiert. Projekte werden entweder einzeln auf Zuruf oder nach einem Cron-Zeitplan
+**Verbindungen** als Excel-Datei (`.xlsx`) exportiert. Projekte werden entweder einzeln auf Zuruf oder nach einem Cron-Zeitplan
 aus einem Projektordner exportiert. Es werden nur neue oder seit dem letzten Export geänderte Projekte verarbeitet.
 
 Unterstützt werden Projekte (`.elk` + gleichnamiger `.edb` Ordner) und Projektarchive (`.zw1`).
@@ -123,15 +123,20 @@ EPLAN des ausführenden Benutzers vorhanden sein, sonst schlägt der Export fehl
 
 ## Ausgabe: Verbindungsliste
 
-Pro Projekt entsteht `<output_folder>\<Projektname>\<Projektname>_Verbindungen.csv`. Die Verbindungen werden direkt über
+Pro Projekt entsteht `<output_folder>\<Projektname>\<Projektname>_Verbindungen.xlsx`. Die Verbindungen werden direkt über
 die EPLAN API gelesen; ein Beschriftungsschema ist dafür **nicht** nötig.
 
-Format: Semikolon-getrennt, UTF-8 mit BOM, sodass Excel die Datei mit Doppelklick korrekt öffnet.
+Exportiert werden die Verbindungen aus dem Schaltplan; 3D-Verbindungen aus dem Schaltschrankaufbau (Pro Panel) sind
+Doppelungen davon und werden ausgelassen.
+
+Die Datei enthält das Blatt „Verbindungen“ mit einer Excel-Tabelle: Jede Spalte lässt sich über die Kopfzeile filtern
+und sortieren, die Kopfzeile bleibt beim Scrollen stehen. Alle Werte sind als Text gespeichert, Kennzeichen wie
+`=VB030+LCM-Q20:1` werden also nicht als Formel ausgewertet.
 
 | Spalte | Inhalt |
 |---|---|
 | Seite | Seite, auf der die Verbindung liegt, z.B. `=VB030+LCM&EFS/7` |
-| Verbindungsbezeichnung | Verbindungsbezeichnung |
+| Verbindungsbezeichnung | Eigenschaft <31011>, z.B. `VD_X500` (bei verdrillten Leitungen haben beide Adern dieselbe Bezeichnung) |
 | Quelle / Ziel | Betriebsmittelkennzeichen und Anschluss, z.B. `=VB030+LCM-Q20:1` |
 | Farbe/Nummer | z.B. `BK` |
 | Querschnitt | z.B. `1,5 mm²` |
@@ -139,10 +144,8 @@ Format: Semikolon-getrennt, UTF-8 mit BOM, sodass Excel die Datei mit Doppelklic
 | Länge | Leitungslänge |
 | Artikelnummer | Artikelnummer(n) der Verbindung, mehrere durch Komma getrennt |
 | #-Markierung | `ja`, wenn die Leitung im Schaltplan mit `#` markiert ist (siehe unten) |
-
-**Werte, die mit `=`, `+`, `-` oder `@` beginnen**, würde Excel als Formel auswerten. Sie werden deshalb als
-`="=VB030+LCM-Q20:1"` geschrieben; Excel zeigt dann genau den Text an. Wer die CSV mit anderen Programmen einliest,
-muss diese Verpackung entfernen.
+| Verdrillung | `ja`, wenn die Leitung verdrillt ist (siehe unten) |
+| Abgeschirmt | `ja`, wenn die Leitung abgeschirmt ist (siehe unten) |
 
 ### #-Markierung
 
@@ -159,6 +162,25 @@ Bei Leitungen über mehrere Seiten genügt ein `#` auf einem Abschnitt. Kann ein
 erscheint im Log eine Warnung. Da die Zuordnung über die Lage erfolgt, sind Fehlzuordnungen möglich, wenn ein `#`
 ungewöhnlich weit neben der Leitung oder sehr nah an einer anderen Leitung steht.
 
+### Verdrillung
+
+Verdrillte Adern haben eine gemeinsame Verbindungsbezeichnung nach dem Muster `VD_` + Buchstabe + Ziffern, optional
+gefolgt von `_` + Ziffern (z.B. `VD_X500`, `VD_A61`, `VD_F500_1`). Verbindungen mit einer solchen Bezeichnung werden
+als verdrillt markiert; welche Adern zusammengehören, zeigt die gemeinsame Bezeichnung in der Spalte
+„Verbindungsbezeichnung“.
+
+### Abschirmung
+
+Ein Schirm wird im Schaltplan als gestrichelte Linie quer über die Adern gezogen und meist an einem Ende geerdet.
+EPLAN verknüpft die Adern nicht in jedem Projekt mit dem Schirm, daher gilt eine Verbindung als abgeschirmt, wenn
+
+1. ihr in EPLAN ein Schirm zugeordnet ist, oder
+2. sie die gezeichnete Schirmlinie kreuzt. Die Länge der Linie steht am Schirmsymbol in den Eigenschaften
+   „Breite“/„Höhe“ (`RECTANGLE_WIDTH`/`RECTANGLE_HEIGHT`), die Richtung vom Symbolpunkt aus ergibt sich aus der
+   Symbolvariante (0 = rechts, 1 = oben, 2 = links, 3 = unten; bei gespiegelten Varianten werden beide Seiten geprüft).
+
+Die Schirmanschlüsse selbst (Leitung vom Schirm zur Erdung bzw. Schirmklemme) gelten nicht als abgeschirmt.
+
 ## Aufbau des Codes
 
 | Datei | Aufgabe |
@@ -170,8 +192,10 @@ ungewöhnlich weit neben der Leitung oder sehr nah an einer anderen Leitung steh
 | `ExportDatabase.cs` | SQLite-Protokoll der Exporte |
 | `EplanWorker.cs` | Startet EPLAN einmal pro Prozess und führt alle API-Aufrufe auf einem STA-Thread aus |
 | `ProjectExporter.cs` | Archiv wiederherstellen, Projekt öffnen, Exporte ausführen |
-| `ConnectionExporter.cs` | Schreibt die Verbindungsliste als CSV |
+| `ConnectionExporter.cs` | Schreibt die Verbindungsliste als Excel-Datei (ClosedXML) |
 | `HashMarkFinder.cs` | Ordnet `#`-Texte geometrisch den Verbindungen zu |
+| `ShieldFinder.cs` | Erkennt abgeschirmte Verbindungen |
+| `ConnectionGeometry.cs` | Leitungsweg einer Verbindung aus ihren Symbolen (für die geometrische Zuordnung) |
 | `ProjectFiles.cs` | Hilfsfunktionen für `.elk` / `.edb` / `.zw1` |
 | `ConfigModel.cs`, `ConfigLoader.cs`, `ConfigureCommand.cs` | config.yaml lesen, schreiben und interaktiv bearbeiten |
 | `ServiceCommands.cs` | Windows-Dienst installieren/entfernen (`sc.exe`) |
