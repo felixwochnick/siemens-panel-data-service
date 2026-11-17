@@ -129,7 +129,7 @@ die EPLAN API gelesen; ein Beschriftungsschema ist dafür **nicht** nötig.
 Exportiert werden die Verbindungen aus dem Schaltplan; 3D-Verbindungen aus dem Schaltschrankaufbau (Pro Panel) sind
 Doppelungen davon und werden ausgelassen.
 
-Die Datei enthält das Blatt „Verbindungen“ mit einer Excel-Tabelle: Jede Spalte lässt sich über die Kopfzeile filtern
+Die Datei enthält die Blätter „Verbindungen“ und „Kabel“ (siehe unten), jeweils als Excel-Tabelle: Jede Spalte lässt sich über die Kopfzeile filtern
 und sortieren, die Kopfzeile bleibt beim Scrollen stehen. Alle Werte sind als Text gespeichert, Kennzeichen wie
 `=VB030+LCM-Q20:1` werden also nicht als Formel ausgewertet.
 
@@ -137,7 +137,8 @@ und sortieren, die Kopfzeile bleibt beim Scrollen stehen. Alle Werte sind als Te
 |---|---|
 | Seite | Seite, auf der die Verbindung liegt, z.B. `=VB030+LCM&EFS/7` |
 | Verbindungsbezeichnung | Eigenschaft <31011>, z.B. `VD_X500` (bei verdrillten Leitungen haben beide Adern dieselbe Bezeichnung) |
-| Quelle / Ziel | Betriebsmittelkennzeichen und Anschluss, z.B. `=VB030+LCM-Q20:1` |
+| Quelle / Ziel | Betriebsmittelkennzeichen und Anschluss, z.B. `=VB030+LCM-Q20:1`; bei Steckern bzw. Anschlussleisten eines Geräts mit Steckerbezeichnung, z.B. `=+H.A25-A1-B150:X531:1` |
+| Kabel | Kabel, zu dem die Verbindung als Ader gehört |
 | Farbe/Nummer | z.B. `BK` |
 | Querschnitt | z.B. `1,5 mm²` |
 | Typ | Leitungstyp, z.B. `SIENOPYR(90)` |
@@ -164,10 +165,18 @@ ungewöhnlich weit neben der Leitung oder sehr nah an einer anderen Leitung steh
 
 ### Verdrillung
 
-Verdrillte Adern haben eine gemeinsame Verbindungsbezeichnung nach dem Muster `VD_` + Buchstabe + Ziffern, optional
-gefolgt von `_` + Ziffern (z.B. `VD_X500`, `VD_A61`, `VD_F500_1`). Verbindungen mit einer solchen Bezeichnung werden
-als verdrillt markiert; welche Adern zusammengehören, zeigt die gemeinsame Bezeichnung in der Spalte
-„Verbindungsbezeichnung“.
+Eine Verbindung gilt als verdrillt, wenn eines der beiden Merkmale zutrifft:
+
+1. **Verbindungsbezeichnung:** Verdrillte Adern haben eine gemeinsame Verbindungsbezeichnung nach dem Muster `VD_` +
+   Buchstabe + Ziffern, optional gefolgt von `_` + Ziffern (z.B. `VD_X500`, `VD_A61`, `VD_F500_1`). Welche Adern
+   zusammengehören, zeigt die gemeinsame Bezeichnung in der Spalte „Verbindungsbezeichnung“.
+2. **Verdrillungssymbol:** Das schwarze Symbol quer über die Adern ist in EPLAN keine Funktion, sondern besteht aus
+   einzelnen Grafiklinien: einem waagerechten oder senkrechten Balken, je einem kurzen Haken (bis 3 mm) an beiden
+   Enden und einem Schrägstrich (45°, bis 3 mm) an jeder verdrillten Ader. Erkannt wird ein Balken mit beiden Haken
+   und mindestens zwei Schrägstrichen; verdrillt sind die Verbindungen, deren Leitungsweg höchstens 1 mm an der Mitte
+   eines Schrägstrichs vorbeiläuft (Leitungsweg wie bei der #-Markierung).
+
+   Schrägstriche ohne passende Leitung (z.B. Symbol neben die Ader gezeichnet) meldet das Log als Warnung.
 
 ### Abschirmung
 
@@ -181,6 +190,25 @@ EPLAN verknüpft die Adern nicht in jedem Projekt mit dem Schirm, daher gilt ein
 
 Die Schirmanschlüsse selbst (Leitung vom Schirm zur Erdung bzw. Schirmklemme) gelten nicht als abgeschirmt.
 
+## Ausgabe: Kabel
+
+Das Blatt „Kabel“ ist wie der EPLAN Kabelnavigator aufgebaut: je Kabeldefinition eine Zeile, direkt darunter ihre
+Adern. Kabeldefinitionen sind Kabel („Kabeldefinition“) und Schirme („Abschirmung, Kabeldefinition“). Unter einem Kabel
+stehen seine Adern, unter einem Schirm seine Anschlussleitungen (z.B. zur Schirmklemme). Ein mehrfach platziertes Kabel
+erscheint nur einmal.
+
+| Spalte | Inhalt |
+|---|---|
+| Kabel | Betriebsmittelkennzeichen, z.B. `-W817405` (auch in den Aderzeilen, damit nach Kabel gefiltert werden kann) |
+| Funktionsdefinition | `Kabeldefinition`, `Abschirmung, Kabeldefinition`, `Ader / Draht`, `Intern`, … |
+| Seite | Seite der Kabeldefinition bzw. Ader |
+| Quelle / Ziel | Kabel: Betriebsmittel an Anfang und Ende; Ader: Anschluss wie im Blatt „Verbindungen“ |
+| Typ | Kabeltyp, z.B. `DRIVE-CLiQ` (nur Kabelzeile) |
+| Adern x Querschnitt | z.B. `4x0,22` (nur Kabelzeile) |
+| Länge | Kabel- bzw. Aderlänge |
+| Farbe/Nummer, Querschnitt | der Ader |
+| Artikelnummer | Artikelnummer(n) des Kabels bzw. der Ader |
+
 ## Aufbau des Codes
 
 | Datei | Aufgabe |
@@ -192,9 +220,11 @@ Die Schirmanschlüsse selbst (Leitung vom Schirm zur Erdung bzw. Schirmklemme) g
 | `ExportDatabase.cs` | SQLite-Protokoll der Exporte |
 | `EplanWorker.cs` | Startet EPLAN einmal pro Prozess und führt alle API-Aufrufe auf einem STA-Thread aus |
 | `ProjectExporter.cs` | Archiv wiederherstellen, Projekt öffnen, Exporte ausführen |
-| `ConnectionExporter.cs` | Schreibt die Verbindungsliste als Excel-Datei (ClosedXML) |
+| `ConnectionExporter.cs` | Schreibt die Excel-Datei (ClosedXML) mit den Blättern Verbindungen und Kabel |
+| `CableList.cs` | Liest Kabel, Schirme und ihre Adern für das Blatt „Kabel“ |
 | `HashMarkFinder.cs` | Ordnet `#`-Texte geometrisch den Verbindungen zu |
 | `ShieldFinder.cs` | Erkennt abgeschirmte Verbindungen |
+| `TwistFinder.cs` | Erkennt das gezeichnete Verdrillungssymbol und ordnet es den Verbindungen zu |
 | `ConnectionGeometry.cs` | Leitungsweg einer Verbindung aus ihren Symbolen (für die geometrische Zuordnung) |
 | `ProjectFiles.cs` | Hilfsfunktionen für `.elk` / `.edb` / `.zw1` |
 | `ConfigModel.cs`, `ConfigLoader.cs`, `ConfigureCommand.cs` | config.yaml lesen, schreiben und interaktiv bearbeiten |

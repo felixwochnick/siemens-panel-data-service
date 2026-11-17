@@ -6,47 +6,128 @@ using Eplan.EplApi.DataModel.EObjects;
 
 namespace EplanElectricP8Api
 {
+    /// <summary>Ein Schirm mit den Adern, die er abschirmt (Indizes in das Verbindungs-Array).</summary>
+    internal sealed class ShieldGroup
+    {
+        public string Page { get; set; }
+        public string Name { get; set; }
+        public string Type { get; set; }
+        public string WireCountAndCrossSection { get; set; }
+        public List<int> Wires { get; } = new List<int>();
+    }
+
     /// <summary>
-    /// Findet abgeschirmte Verbindungen. EPLAN verknüpft die Adern nicht immer mit dem Schirm (Connection.Shieldings);
-    /// zusätzlich werden daher die Adern ausgewertet, die die gezeichnete Schirmlinie kreuzen.
+    /// Findet abgeschirmte Verbindungen und ordnet sie ihren Schirmen zu:
+    /// <list type="bullet">
+    /// <item>Schirmsymbole ("Abschirmung, Kabeldefinition"): logisch über Connection.Shieldings, sonst über die Adern,
+    /// die die gezeichnete Schirmlinie kreuzen (EPLAN verknüpft die Adern nicht immer mit dem Schirm).</item>
+    /// <item>Geschirmte Kabel: Kabeldefinitionen, deren Typ mit "GSC" beginnt (z.B. GSC-01), mit ihren Adern.</item>
+    /// </list>
     /// </summary>
     internal static class ShieldFinder
     {
-        /// <summary>Gibt pro Verbindung zurück, ob sie abgeschirmt ist; shieldCount = Anzahl Schirmsymbole.</summary>
-        public static bool[] Find(Project project, Connection[] connections, out int shieldCount)
-        {
-            var shielded = new bool[connections.Length];
+        private const string ShieldedCableTypePrefix = "GSC";
 
-            // 1. Logisch: Schirm ist der Verbindung zugeordnet
+        /// <summary>Gibt die Schirme zurück; shielded = pro Verbindung, ob sie abgeschirmt ist.</summary>
+        public static List<ShieldGroup> Find(Project project, Connection[] connections, out bool[] shielded)
+        {
+            var groups = new Dictionary<string, ShieldGroup>();
+
+            // 1. Schirmsymbole: logisch zugeordnete Adern
             for (int i = 0; i < connections.Length; i++)
             {
-                shielded[i] = Shieldings(connections[i]).Length > 0;
+                foreach (var shield in Shieldings(connections[i]))
+                {
+                    Group(groups, shield).Wires.Add(i);
+                }
             }
 
-            // 2. Geometrisch: Adern, die die Schirmlinie kreuzen
-            var shieldsByPage = new Dictionary<string, List<PageBox>>();
-            shieldCount = 0;
+            // 2. Schirmsymbole: Adern, die die Schirmlinie kreuzen
             foreach (var page in project.Pages)
             {
-                var boxes = page.AllPlacements.OfType<Shield>().Select(ShieldArea).Where(box => box != null).ToList();
-                shieldCount += boxes.Count;
-                if (boxes.Count > 0)
+                foreach (var shield in page.AllPlacements.OfType<Shield>())
                 {
-                    shieldsByPage[page.Name] = boxes;
+                    var group = Group(groups, shield);
+                    var area = ShieldArea(shield);
+                    if (area == null)
+                    {
+                        continue;
+                    }
+                    var boxes = new Dictionary<string, List<PageBox>> { { page.Name, new List<PageBox> { area } } };
+                    var crossing = new bool[connections.Length];
+                    ConnectionGeometry.MarkIntersecting(connections, boxes, crossing);
+                    group.Wires.AddRange(Enumerable.Range(0, connections.Length).Where(i => crossing[i]));
                 }
             }
-            ConnectionGeometry.MarkIntersecting(connections, shieldsByPage, shielded);
 
-            // Schirmanschlüsse (Leitung vom Schirm zur Erdung/Schirmklemme) sind selbst nicht abgeschirmt
+            // 3. Geschirmte Kabel (GSC...) mit ihren Adern
             for (int i = 0; i < connections.Length; i++)
             {
-                if (IsShieldConnection(connections[i]))
+                var cable = CableOf(connections[i]);
+                string type = cable == null ? "" : ConnectionExporter.Value(() => cable.Properties.FUNC_CABLETYPE);
+                if (type.StartsWith(ShieldedCableTypePrefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    shielded[i] = false;
+                    string key = "Kabel|" + cable.Name;
+                    if (!groups.TryGetValue(key, out var group))
+                    {
+                        groups[key] = group = new ShieldGroup
+                        {
+                            Page = connections[i].Page?.Name ?? "",
+                            Name = cable.Name ?? "",
+                            Type = type,
+                            WireCountAndCrossSection = ConnectionExporter.Value(() => cable.Properties.FUNC_CABLEWIRECOUNTANDCROSSSECTION),
+                        };
+                    }
+                    group.Wires.Add(i);
                 }
             }
 
-            return shielded;
+            // Schirmanschlüsse (Leitung vom Schirm zur Erdung/Schirmklemme) sind selbst nicht abgeschirmt
+            shielded = new bool[connections.Length];
+            foreach (var group in groups.Values)
+            {
+                group.Wires.RemoveAll(i => IsShieldConnection(connections[i]));
+                var distinct = group.Wires.Distinct().OrderBy(i => i).ToList();
+                group.Wires.Clear();
+                group.Wires.AddRange(distinct);
+                foreach (int i in distinct)
+                {
+                    shielded[i] = true;
+                }
+            }
+
+            return groups.Values.OrderBy(g => g.Page, StringComparer.Ordinal).ToList();
+        }
+
+        /// <summary>Gruppe eines Schirmsymbols; Seite und Position identifizieren es (die API liefert je Zugriff neue Objekte).</summary>
+        private static ShieldGroup Group(Dictionary<string, ShieldGroup> groups, Function shield)
+        {
+            string page = shield.Page?.Name ?? "";
+            var location = shield.Location;
+            string key = "Schirm|" + page + "|" + Math.Round(location.X, 2) + "|" + Math.Round(location.Y, 2);
+            if (!groups.TryGetValue(key, out var group))
+            {
+                groups[key] = group = new ShieldGroup
+                {
+                    Page = page,
+                    Name = string.IsNullOrEmpty(shield.Name) ? "Abschirmung" : shield.Name,
+                    Type = "",
+                    WireCountAndCrossSection = "",
+                };
+            }
+            return group;
+        }
+
+        private static Cable CableOf(Connection connection)
+        {
+            try
+            {
+                return connection.CableDefinitionLine;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         /// <summary>

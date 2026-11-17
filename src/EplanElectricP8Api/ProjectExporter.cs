@@ -157,11 +157,15 @@ namespace EplanElectricP8Api
             try
             {
                 var export = ConnectionExporter.Export(project, destinationFile);
-                _logger.LogInformation("  Verbindungen: OK ({Count}, davon {Marked} mit #, {Twisted} verdrillt, {Shielded} abgeschirmt an {Shields} Schirm(en)) -> {File}",
-                    export.Count, export.Marked, export.Twisted, export.Shielded, export.Shields, destinationFile);
+                _logger.LogInformation("  Verbindungen: OK ({Count}, davon {Marked} mit #, {Twisted} verdrillt ({TwistSymbols} Verdrillungssymbol(e)), {Shielded} abgeschirmt an {Shields} Schirm(en)), {Cables} Kabeldefinition(en), {Texts} Text(e) -> {File}",
+                    export.Count, export.Marked, export.Twisted, export.TwistSymbols, export.Shielded, export.Shields, export.Cables, export.Texts, destinationFile);
                 if (export.UnmatchedMarks > 0)
                 {
                     _logger.LogWarning("  Verbindungen: {Unmatched} #-Markierung(en) konnten keiner Verbindung zugeordnet werden", export.UnmatchedMarks);
+                }
+                if (export.UnmatchedTwistMarks > 0)
+                {
+                    _logger.LogWarning("  Verbindungen: {Unmatched} Ader(n) an Verdrillungssymbolen konnten keiner Verbindung zugeordnet werden", export.UnmatchedTwistMarks);
                 }
                 result.Files.Add(destinationFile);
             }
