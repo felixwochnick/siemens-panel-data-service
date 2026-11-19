@@ -202,7 +202,7 @@ erscheint nur einmal.
 | Kabel | Betriebsmittelkennzeichen, z.B. `-W817405` (auch in den Aderzeilen, damit nach Kabel gefiltert werden kann) |
 | Funktionsdefinition | `Kabeldefinition`, `Abschirmung, Kabeldefinition`, `Ader / Draht`, `Intern`, … |
 | Seite | Seite der Kabeldefinition bzw. Ader |
-| Quelle / Ziel | Kabel: Betriebsmittel an Anfang und Ende; Ader: Anschluss wie im Blatt „Verbindungen“ |
+| Quelle / Ziel | Kabel: Betriebsmittel an Anfang und Ende, mit Anschluss (z.B. `=+H.A25-K1:CH1`), wenn alle Adern dort am selben Anschluss enden; Ader: Anschluss wie im Blatt „Verbindungen“ |
 | Typ | Kabeltyp, z.B. `DRIVE-CLiQ` (nur Kabelzeile) |
 | Adern x Querschnitt | z.B. `4x0,22` (nur Kabelzeile) |
 | Länge | Kabel- bzw. Aderlänge |

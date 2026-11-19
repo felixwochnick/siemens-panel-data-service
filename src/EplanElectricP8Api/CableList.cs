@@ -39,13 +39,16 @@ namespace EplanElectricP8Api
 
                     definitions++;
                     var props = function.Properties;
+                    var wires = Wires(function).ToArray();
+                    var starts = wires.Select(ConnectionExporter.Source).ToArray();
+                    var ends = wires.Select(ConnectionExporter.Destination).ToArray();
                     rows.Add(new[]
                     {
                         function.Name ?? "",
                         DefinitionName(() => function.FunctionDefinition),
                         page.Name,
-                        ConnectionExporter.Value(() => props.FUNC_CABLE_SOURCE),
-                        ConnectionExporter.Value(() => props.FUNC_CABLE_DESTINATION),
+                        Precise(ConnectionExporter.Value(() => props.FUNC_CABLE_SOURCE), starts, ends),
+                        Precise(ConnectionExporter.Value(() => props.FUNC_CABLE_DESTINATION), ends, starts),
                         ConnectionExporter.Value(() => props.FUNC_CABLETYPE),
                         ConnectionExporter.Value(() => props.FUNC_CABLEWIRECOUNTANDCROSSSECTION),
                         ConnectionExporter.Value(() => props.FUNC_CABLELENGTH_FULL),
@@ -54,7 +57,7 @@ namespace EplanElectricP8Api
                         ConnectionExporter.PartNumbers(() => function.ArticleReferences),
                     });
 
-                    foreach (var wire in Wires(function))
+                    foreach (var wire in wires)
                     {
                         rows.Add(WireRow(function.Name ?? "", wire));
                     }
@@ -62,6 +65,26 @@ namespace EplanElectricP8Api
             }
 
             return rows;
+        }
+
+        /// <summary>
+        /// Quelle/Ziel des Kabels mit Anschluss, z.B. "=+H.A25-K1:CH1" statt "=+H.A25-K1", wenn alle Adern am Gerät
+        /// am selben Anschluss enden; bei mehreren Anschlüssen (z.B. Klemmleiste) bleibt das Betriebsmittel stehen.
+        /// Zuerst die gleichnamige Aderseite, dann die andere (Adern können umgekehrt gezeichnet sein).
+        /// </summary>
+        private static string Precise(string device, string[] side, string[] otherSide)
+        {
+            if (device.Length == 0)
+            {
+                return device;
+            }
+            Func<string[], string[]> atDevice = ends => ends.Where(end => end.StartsWith(device + ":", StringComparison.Ordinal)).Distinct().ToArray();
+            var matches = atDevice(side);
+            if (matches.Length == 0)
+            {
+                matches = atDevice(otherSide);
+            }
+            return matches.Length == 1 ? matches[0] : device;
         }
 
         /// <summary>Adern des Kabels bzw. Anschlussleitungen des Schirms (Schirm -> Schirmklemme/Erdung).</summary>
