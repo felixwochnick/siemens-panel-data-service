@@ -72,3 +72,28 @@ export async function expectNoPageOverflow(page: Page) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
   expect(overflow).toBeLessThanOrEqual(1)
 }
+
+// ── Tabellenansicht (DataSheet) ──────────────────────────────────────────────
+
+/** Tabelle eines Ergebnis-Tabs (connections, cables, shields, texts) */
+export function sheet(page: Page, id: string) {
+  const root = page.getByTestId(`sheet-${id}`)
+  return {
+    root,
+    grid: root.getByTestId('sheet-grid'),
+    count: root.getByTestId('sheet-count'),
+    rows: root.getByTestId('sheet-row'),
+    search: root.getByTestId('sheet-search'),
+    filter: (key: string) => root.getByTestId(`sheet-filter-${key}`),
+    sortBy: (key: string) => root.getByTestId(`sheet-sort-${key}`).click(),
+    /** Zelle (Zeile 0-basiert in der Anzeige, Spalte 0-basiert) */
+    cell: (row: number, col: number) => root.locator(`[data-r="${row}"][data-c="${col}"]`),
+    /** Text der Spalte in allen gerenderten Zeilen */
+    columnTexts: (col: number) => root.locator(`[data-testid="sheet-row"] [data-c="${col}"]`).allInnerTexts(),
+  }
+}
+
+/** Ergebnis-Tab wählen (Name ohne Zähler) */
+export async function openTab(page: Page, name: string) {
+  await page.getByTestId('result-tabs').getByRole('tab', { name: new RegExp(`^${name}`) }).click()
+}

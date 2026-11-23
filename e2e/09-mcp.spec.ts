@@ -5,13 +5,13 @@ import { discoverAuthorizationServerMetadata, discoverOAuthProtectedResourceMeta
 import type { FetchLike } from '@modelcontextprotocol/sdk/shared/transport.js'
 import { LATEST_PROTOCOL_VERSION } from '@modelcontextprotocol/sdk/types.js'
 import { ageSessions as ageSessionsOf } from './db-exec'
-import { APP_URL, E2E_API_PASSWORD, E2E_DIALECT } from './targets'
-import { PASSWORD, browserFetch, expectNoPageOverflow, gotoHydrated, loggedIn, waitForPage } from './utils'
+import { APP_URL, E2E_DIALECT, FIXTURE, PROJECTS_DIR } from './targets'
+import { PASSWORD, expectNoPageOverflow, gotoHydrated, loggedIn, waitForPage } from './utils'
 
 /*
  * KI-Assistent wie in Betrieb: Ein Programm (hier ein kleiner JSON-RPC-Client) entdeckt die Anmeldung, registriert sich,
- * die Person stimmt im Browser zu, danach arbeitet es mit ihren Rechten. Nur Admins (Anna) dürfen das; die
- * Einstellungen und Läufe stammen aus 02-console.spec.ts.
+ * die Person stimmt im Browser zu, danach arbeitet es mit ihren Rechten. Alle Angemeldeten dürfen das; Admin-Werkzeuge
+ * prüfen die Rolle selbst. Projekte, Analysen und Einstellungen stammen aus den vorigen Specs.
  */
 
 const MCP_URL = `${APP_URL}/mcp`
@@ -147,16 +147,16 @@ test.describe.serial('KI-Assistent (MCP)', () => {
   })
 
   /** Zustimmungsseite öffnen, entscheiden, auf den Rücksprung warten; liefert dessen Adresse */
-  async function decide(query: string, decision: { approve: true, access: 'read' | 'write' } | { approve: false }) {
-    await gotoHydrated(page, authorizePath(endpoints.authorize, query))
-    await expect(page.getByTestId('oauth-consent')).toBeVisible()
+  async function decide(query: string, decision: { approve: true, access: 'read' | 'write' } | { approve: false }, on: Page = page) {
+    await gotoHydrated(on, authorizePath(endpoints.authorize, query))
+    await expect(on.getByTestId('oauth-consent')).toBeVisible()
     if (decision.approve) {
-      const level = decision.access === 'read' ? /Nur lesen/ : /Lesen und steuern/
-      await page.getByRole('radio', { name: level }).check()
-      await expect(page.getByRole('radio', { name: level })).toBeChecked()
+      const level = decision.access === 'read' ? /Nur lesen/ : /Lesen und Analysen starten/
+      await on.getByRole('radio', { name: level }).check()
+      await expect(on.getByRole('radio', { name: level })).toBeChecked()
     }
-    const callback = page.waitForRequest(request => request.url().startsWith(REDIRECT_URI))
-    await page.getByTestId(decision.approve ? 'oauth-allow' : 'oauth-deny').click()
+    const callback = on.waitForRequest(request => request.url().startsWith(REDIRECT_URI))
+    await on.getByTestId(decision.approve ? 'oauth-allow' : 'oauth-deny').click()
     return new URL((await callback).url())
   }
 
@@ -167,10 +167,10 @@ test.describe.serial('KI-Assistent (MCP)', () => {
   }
 
   /** Vollständige Zustimmung mit Austausch gegen Tokens */
-  async function connect(request: APIRequestContext, access: 'read' | 'write') {
+  async function connect(request: APIRequestContext, access: 'read' | 'write', on: Page = page) {
     const { verifier, challenge } = pkce()
     const state = randomBytes(12).toString('base64url')
-    const callback = await decide(authorizeQuery(clientId, challenge, state), { approve: true, access })
+    const callback = await decide(authorizeQuery(clientId, challenge, state), { approve: true, access }, on)
     expect(callback.searchParams.get('state')).toBe(state)
     expect(callback.searchParams.get('iss')).toBe(APP_URL)
     const code = callback.searchParams.get('code')!
@@ -240,7 +240,7 @@ test.describe.serial('KI-Assistent (MCP)', () => {
     await expect(page.getByTestId('oauth-client')).toHaveText(CLIENT_NAME)
     await expect(page.getByTestId('oauth-redirect-host')).toHaveText('127.0.0.1:9')
     await expect(page.getByRole('radio', { name: /Nur lesen/ })).toBeChecked()
-    await expect(page.getByRole('radio', { name: /Lesen und steuern/ })).not.toBeChecked()
+    await expect(page.getByRole('radio', { name: /Lesen und Analysen starten/ })).not.toBeChecked()
 
     const callback = page.waitForRequest(r => r.url().startsWith(REDIRECT_URI))
     await page.getByTestId('oauth-allow').click()
@@ -269,45 +269,53 @@ test.describe.serial('KI-Assistent (MCP)', () => {
     expect((await exchange(request, fresh.code, fresh.verifier)).status()).toBe(400)
   })
 
-  test('lesende Verbindung: keine schreibenden Werkzeuge, Status, Läufe und Einstellungen abrufbar', async ({ request }) => {
+  test('lesende Verbindung: keine schreibenden Werkzeuge; Status, Projekte, Ergebnisse und Einstellungen abrufbar', async ({ request }) => {
     const mcp = mcpClient(request, readTokens.access_token)
     const init = await mcp.initialize()
     expect(init.serverInfo.name).toBe('pds')
     expect(init.instructions).toContain('get_status')
 
     const tools = await mcp.tools()
-    expect(tools.sort()).toEqual(['get_run', 'get_settings', 'get_status', 'list_files', 'list_runs', 'read_log'])
+    expect(tools.sort()).toEqual(['get_analysis', 'get_project', 'get_settings', 'get_status', 'list_folder_projects', 'list_projects', 'list_shields', 'list_texts', 'query_cables', 'query_connections'])
 
     // Was nicht angeboten wird, lässt sich auch nicht aufrufen
-    const forbidden = await mcp.tool('start_run')
+    const forbidden = await mcp.tool('start_analysis', { projectId: 1 })
     expect(forbidden.isError).toBe(true)
 
     const status = await mcp.tool('get_status')
     expect(status.isError, status.text).toBe(false)
     expect(status.json?.database).toBe(E2E_DIALECT === 'sqlite' ? 'SQLite' : 'SQL Server')
-    expect(status.json?.scheduler).toMatchObject({ enabled: false, cronSchedule: '0 0/5 * * * ?' })
-    expect(status.json?.lastRun.status).toBe('succeeded')
-    expect(status.json?.files.total).toBe(2)
+    expect(status.json?.worker.state).toBe('connected')
+    expect(status.json?.scheduler).toMatchObject({ enabled: false, cronSchedule: '0 0 6 ? * MON-FRI' })
+    expect(status.json?.recentAnalyses[0].status).toBe('succeeded')
+
+    const projects = await mcp.tool('list_projects')
+    expect(projects.json?.total).toBe(3)
+    const project = projects.json?.projects.find((p: { name: string }) => p.name === 'Anlage E2E')
+    expect(project).toBeTruthy()
+
+    const twisted = await mcp.tool('query_connections', { projectId: project.id, twisted: true })
+    expect(twisted.isError, twisted.text).toBe(false)
+    expect(twisted.json?.total).toBe(4)
+    const all = await mcp.tool('query_connections', { projectId: project.id, limit: 5 })
+    expect(all.json?.total).toBe(FIXTURE.connections)
+    expect(all.json?.rows).toHaveLength(5)
+
+    const folder = await mcp.tool('list_folder_projects')
+    expect(folder.json?.folder).toBe(PROJECTS_DIR)
+    expect(folder.json?.total).toBe(2)
 
     const settings = await mcp.tool('get_settings')
-    expect(settings.json?.settings.api.password).toEqual({ set: true, readable: true })
-    expect(settings.text).not.toContain(E2E_API_PASSWORD)
+    expect(settings.json?.settings).toMatchObject({ retentionDays: 90, folder: PROJECTS_DIR })
+    expect(settings.json?.settings.networkDrive.password).toEqual({ set: false, readable: true })
 
-    const runs = await mcp.tool('list_runs', { limit: 5 })
-    expect(runs.json?.total).toBeGreaterThanOrEqual(2)
-    const run = await mcp.tool('get_run', { id: runs.json?.runs[0].id })
-    expect(run.json?.events.some((e: { code: string, message: string }) => e.code === 'order_created' && e.message.includes('Created order'))).toBe(true)
-
-    const log = await mcp.tool('read_log', { file: 'service.log', filter: 'warn' })
-    expect(log.json?.lines).toEqual(['2026-11-21T08:00:02Z WARN E2E-Warnung'])
-
-    // Unbekannter Lauf: Fehlercode statt Rateversuch
-    const unknown = await mcp.tool('get_run', { id: 999999 })
+    // Unbekannte Analyse: Fehlercode statt Rateversuch
+    const unknown = await mcp.tool('get_analysis', { analysisId: 999999 })
     expect(unknown.isError).toBe(true)
     expect(unknown.text).toMatch(/^not_found/)
   })
 
-  test('„Lesen und steuern“ ersetzt die erste Verbindung; Änderungen wirken in der Konsole', async ({ request }) => {
+  test('„Lesen und Analysen starten“ ersetzt die erste Verbindung; Änderungen wirken in der App', async ({ request }) => {
     writeTokens = (await connect(request, 'write')).tokens
     expect(writeTokens.scope).toBe('mcp:write')
 
@@ -316,25 +324,26 @@ test.describe.serial('KI-Assistent (MCP)', () => {
 
     const mcp = mcpClient(request, writeTokens.access_token)
     await mcp.initialize()
-    expect(await mcp.tools()).toEqual(expect.arrayContaining(['start_run', 'set_scheduler', 'update_settings']))
+    expect(await mcp.tools()).toEqual(expect.arrayContaining(['start_analysis', 'set_scheduler', 'update_settings']))
 
     // Passwörter lassen sich über MCP nicht setzen
-    const password = await mcp.tool('update_settings', { api: { password: 'neu' } })
+    const password = await mcp.tool('update_settings', { networkDrive: { password: 'neu' } })
     expect(password.isError).toBe(true)
 
-    const updated = await mcp.tool('update_settings', { historyRetentionDays: 30 })
+    const updated = await mcp.tool('update_settings', { retentionDays: 30 })
     expect(updated.isError, updated.text).toBe(false)
-    expect(updated.json?.changed).toEqual(['historyRetentionDays'])
+    expect(updated.json?.changed).toEqual(['retentionDays'])
     // So sieht es auch die Oberfläche (REST-API mit der Sitzung der Person)
     const settings = await context.request.get(`${APP_URL}/api/settings`)
-    expect((await settings.json()).settings.historyRetentionDays).toBe(30)
+    expect((await settings.json()).settings.retentionDays).toBe(30)
 
-    const started = await mcp.tool('start_run')
+    const projects = await mcp.tool('list_projects', { search: 'Süd' })
+    const started = await mcp.tool('start_analysis', { projectId: projects.json?.projects[0].id })
     expect(started.isError, started.text).toBe(false)
     expect(started.json).toMatchObject({ trigger: 'mcp', triggeredBy: 'Anna Admin' })
-    await expect.poll(async () => (await mcp.tool('get_run', { id: started.json?.id })).json?.status, { timeout: 20_000 }).toBe('succeeded')
+    await expect.poll(async () => (await mcp.tool('get_analysis', { analysisId: started.json?.id })).json?.status, { timeout: 30_000 }).toBe('succeeded')
 
-    await mcp.tool('update_settings', { historyRetentionDays: 90 })
+    await mcp.tool('update_settings', { retentionDays: 90 })
   })
 
   test('Ablehnen führt mit error=access_denied zurück, ohne Verbindung', async ({ request }) => {
@@ -375,7 +384,7 @@ test.describe.serial('KI-Assistent (MCP)', () => {
     const connection = page.getByTestId('mcp-connection')
     await expect(connection).toHaveCount(1)
     await expect(connection).toContainText(CLIENT_NAME)
-    await expect(connection).toContainText('Lesen und steuern')
+    await expect(connection).toContainText('Lesen und Analysen starten')
 
     // Erreichbar über das Benutzermenü
     await gotoHydrated(page, '/')
@@ -402,18 +411,20 @@ test.describe.serial('KI-Assistent (MCP)', () => {
     }
   })
 
-  test('Nicht-Admins können keine Verbindung zulassen', async ({ browser }) => {
+  test('Nicht-Admins verbinden sich mit ihren Rechten: Admin-Werkzeuge antworten forbidden', async ({ browser, request }) => {
     const paul = await loggedIn(browser, 'paul')
     try {
-      const { challenge } = pkce()
-      await gotoHydrated(paul.page, authorizePath(endpoints.authorize, authorizeQuery(clientId, challenge, 'paul')))
-      await expect(paul.page).toHaveURL(/\/no-access$/)
-      const query = Object.fromEntries(new URLSearchParams(authorizeQuery(clientId, challenge, 'paul')))
-      // Auch Schreibweisen, die der Router auf denselben Handler legt (abschließender Schrägstrich), sind gesperrt
-      for (const path of ['/api/oauth/authorize', '/api/oauth/authorize/']) {
-        expect((await browserFetch(paul.page, path, { method: 'POST', body: { query, approve: true, access: 'read' } })).status, path).toBe(403)
-        expect((await browserFetch(paul.page, `${path}?${authorizeQuery(clientId, challenge, 'paul')}`)).status, path).toBe(403)
-      }
+      await paul.context.route(`${new URL(REDIRECT_URI).origin}/**`, route => route.fulfill({ status: 200, contentType: 'text/plain', body: 'Rücksprung abgefangen' }))
+      const { tokens } = await connect(request, 'write', paul.page)
+      const mcp = mcpClient(request, tokens.access_token)
+      await mcp.initialize()
+      expect((await mcp.tool('list_projects')).json?.total).toBe(3)
+      const settings = await mcp.tool('get_settings')
+      expect(settings.isError).toBe(true)
+      expect(settings.text).toMatch(/^forbidden/)
+      expect((await mcp.tool('set_scheduler', { enabled: true })).text).toMatch(/^forbidden/)
+      // Paul hat seine eigene Verbindung; Annas bleibt bestehen
+      expect((await mcpClient(request, writeTokens.access_token).request('tools/list')).status).toBe(200)
     }
     finally {
       await paul.context.close()

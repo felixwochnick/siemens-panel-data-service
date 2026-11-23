@@ -1,11 +1,6 @@
 import type { Kysely } from 'kysely'
 import { withE2eDb } from './db'
 
-/** Importierte Einträge der Nachverfolgung entfernen (spätere Tests erwarten nur die Dateien des Laufs) */
-export function forgetImportedFiles() {
-  return withE2eDb(db => db.deleteFrom('pds.files').where('importedAt', 'is not', null).execute())
-}
-
 /** Nur was ageSessions braucht – in der App ist der Anmeldezeitpunkt nicht änderbar (Typ `never`) */
 interface SessionAging {
   'core.sessions': { userId: string, createdAt: Date }

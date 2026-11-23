@@ -17,12 +17,15 @@ export const E2E_DB = 'pds_e2e'
 /** SQLite-Datei (fester Pfad: Konfiguration und Tests laufen in verschiedenen Prozessen) */
 export const E2E_SQLITE_FILE = join(tmpdir(), 'pds-e2e-sqlite', 'pds.db')
 
-/** Nachbau der EPLAN-API (global-setup startet ihn) */
-export const FAKE_EPLAN_PORT = Number(process.env.E2E_FAKE_EPLAN_PORT ?? 3399)
-export const FAKE_EPLAN_URL = `http://127.0.0.1:${FAKE_EPLAN_PORT}`
-export const E2E_API_USER = 'e2e@example.com'
-export const E2E_API_PASSWORD = 'E2E-Passwort!'
-
 /** Feste Ordner (Konfiguration und Tests laufen in verschiedenen Prozessen und müssen denselben Pfad kennen) */
-export const EPDZ_DIR = join(tmpdir(), 'pds-e2e-epdz')
 export const LOG_DIR = join(tmpdir(), 'pds-e2e-logs')
+/** Datenordner der App (uploads/, work/), vor jedem Start des Dev-Servers geleert */
+export const DATA_DIR = join(tmpdir(), 'pds-e2e-data')
+/** Projektordner mit Ersatz-Projekten (global-setup legt ihn an; der Admin trägt ihn in den Einstellungen ein) */
+export const PROJECTS_DIR = join(tmpdir(), 'pds-e2e-projects')
+
+/** Ersatz-Worker statt EPLAN: liefert packages/analyzer/fixtures/sample-raw.json (Pfad relativ zur Wurzel) */
+export const FAKE_WORKER = 'spawn:node tools/fake-worker/index.mjs'
+
+/** Zeilen der Fixture (20 Verbindungen, 5 Kabel mit 10 Adern, 2 Schirme mit 4 Adern, 8 Texte) */
+export const FIXTURE = { connections: 20, cables: 5, cableWires: 10, shields: 2, shieldWires: 4, texts: 8 }

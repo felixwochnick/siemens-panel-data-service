@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { browserFetch, gotoHydrated, login, waitForPage } from './utils'
 
-test.describe('Anmeldung', () => {
+test.describe('Anmeldung und Rechte', () => {
   test('leitet ohne Anmeldung zur Login-Seite und als Admin zurück zum Ziel', async ({ page }) => {
     await gotoHydrated(page, '/settings')
     await expect(page).toHaveURL(/\/login\?redirect=(%2F|\/)settings/)
@@ -11,11 +11,13 @@ test.describe('Anmeldung', () => {
     await page.locator('#password').fill('anna-pass')
     await page.locator('#submit-login').click()
     await waitForPage(page, url => url.pathname === '/settings')
-    await expect(page.getByTestId('settings-form')).toContainText('EPLAN-API')
-    // Navigation der Konsole
-    for (const name of ['Übersicht', 'Läufe', 'Dateien', 'Protokolle', 'Einstellungen', 'KI-Assistenten'])
+    await expect(page.getByTestId('settings-form')).toContainText('EPLAN')
+    // Navigation für Admins
+    for (const name of ['Übersicht', 'Projekte', 'Einstellungen', 'Protokolle', 'KI-Assistenten'])
       await expect(page.getByRole('link', { name, exact: true })).toBeVisible()
-    expect((await browserFetch(page, '/api/status')).status).toBe(200)
+    const status = await browserFetch<{ admin: unknown }>(page, '/api/status')
+    expect(status.status).toBe(200)
+    expect(status.body.admin).not.toBeNull()
   })
 
   test('zeigt Fehler des Login-Ablaufs verständlich an', async ({ page }) => {
@@ -33,27 +35,35 @@ test.describe('Anmeldung', () => {
     expect(new URL(page.url()).hostname).not.toBe('evil.example')
   })
 
-  test('Nicht-Admins sehen nur „Kein Zugriff“; API und MCP-Zustimmung sind gesperrt', async ({ page }) => {
+  test('Nicht-Admins sehen Projekte, aber keine Einstellungen; die Admin-API antwortet 403', async ({ page }) => {
     await login(page, 'paul')
-    await expect(page).toHaveURL(/\/no-access$/)
-    await expect(page.getByTestId('no-access')).toContainText('Kein Zugriff')
-    await expect(page.getByTestId('no-access')).toContainText('Paul Planer')
+    await expect(page).toHaveURL(/\/$/)
+    const nav = page.getByTestId('main-nav')
+    await expect(nav.getByRole('link', { name: 'Übersicht', exact: true })).toBeVisible()
+    await expect(nav.getByRole('link', { name: 'Projekte', exact: true })).toBeVisible()
+    await expect(nav.getByRole('link', { name: 'Einstellungen', exact: true })).toHaveCount(0)
+    await expect(nav.getByRole('link', { name: 'Protokolle', exact: true })).toHaveCount(0)
+    // Übersicht ohne Zeitplan und Änderungen
+    await expect(page.getByTestId('card-worker')).toBeVisible()
+    await expect(page.getByTestId('card-schedule')).toHaveCount(0)
+    await expect(page.getByTestId('worker-restart')).toHaveCount(0)
 
-    // Auch direkte Adressen führen dorthin
-    await gotoHydrated(page, '/runs')
-    await expect(page).toHaveURL(/\/no-access$/)
+    // Direkte Adressen zeigen „Kein Zugriff“ mit Navigation
+    for (const path of ['/settings', '/logs']) {
+      await gotoHydrated(page, path)
+      await expect(page.getByTestId('error-forbidden')).toContainText('Kein Zugriff')
+      await expect(page.getByTestId('main-nav')).toBeVisible()
+    }
 
-    for (const path of ['/api/status', '/api/settings', '/api/runs', '/api/files', '/api/logs'])
+    const status = await browserFetch<{ admin: unknown }>(page, '/api/status')
+    expect(status.status).toBe(200)
+    expect(status.body.admin).toBeNull()
+    expect((await browserFetch(page, '/api/projects')).status).toBe(200)
+    for (const path of ['/api/settings', '/api/logs', '/api/settings/cron-preview?cron=0+0+2+*+*+%3F&timezone=UTC'])
       expect((await browserFetch(page, path)).status, path).toBe(403)
-    expect((await browserFetch(page, '/api/runs', { method: 'POST' })).status).toBe(403)
-    // Keine KI-Verbindung für Nicht-Admins (die Anfrage wird vor jeder Prüfung abgewiesen)
-    expect((await browserFetch(page, '/api/oauth/authorize?client_id=x')).status).toBe(403)
-    expect((await browserFetch(page, '/api/oauth/authorize', { method: 'POST', body: { query: {}, approve: false } })).status).toBe(403)
-
-    // Abmelden aus der Seite heraus; danach ist die API zu
-    await page.getByTestId('no-access-logout').click()
-    await waitForPage(page, url => url.pathname === '/login')
-    expect((await browserFetch(page, '/api/status')).status).toBe(401)
+    expect((await browserFetch(page, '/api/scheduler', { method: 'PUT', body: { enabled: true } })).status).toBe(403)
+    expect((await browserFetch(page, '/api/worker/restart', { method: 'POST' })).status).toBe(403)
+    expect((await browserFetch(page, '/api/projects/1', { method: 'DELETE' })).status).toBe(403)
   })
 
   test('meldet ab und sperrt danach die API', async ({ page }) => {
