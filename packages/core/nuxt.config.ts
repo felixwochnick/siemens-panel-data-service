@@ -24,6 +24,12 @@ export default defineNuxtConfig({
     mcp: {
       // true ⇒ nur Admins dürfen KI-Assistenten (MCP) zulassen (Zustimmungsseite); NUXT_MCP_ADMIN_ONLY
       adminOnly: false,
+      // Dauer einer Verbindung in Sekunden; 0 ⇒ wie die Sitzung (endet spätestens mit ihr). NUXT_MCP_CONNECTION_SECONDS
+      connectionSeconds: 0,
+    },
+    requestGuard: {
+      // Pfade (exakt), die größere Bodies annehmen und ihre Grenze selbst prüfen (z. B. Hochladen von Dateien)
+      largeBodyPaths: [] as string[],
     },
     session: {
       name: 'pds-session',

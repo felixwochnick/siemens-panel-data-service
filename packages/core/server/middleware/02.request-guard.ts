@@ -17,7 +17,10 @@ export default defineEventHandler((event) => {
   const withSession = isUnder(path, '/api') || isUnder(path, '/auth')
   if (!withSession && !isUnder(path, '/oauth') && !isUnder(path, '/mcp')) return
 
-  if (Number(getRequestHeader(event, 'content-length') ?? 0) > MAX_BODY_BYTES)
+  // Ausnahmen (requestGuard.largeBodyPaths der App) prüfen die Größe selbst, während sie den Body streamen
+  const largeBodyPaths = (useRuntimeConfig() as { requestGuard?: { largeBodyPaths?: unknown } }).requestGuard?.largeBodyPaths
+  const largeBody = Array.isArray(largeBodyPaths) && largeBodyPaths.includes(path)
+  if (!largeBody && Number(getRequestHeader(event, 'content-length') ?? 0) > MAX_BODY_BYTES)
     throw createError({ statusCode: 413, message: 'payload_too_large' })
   if (!withSession) return
 

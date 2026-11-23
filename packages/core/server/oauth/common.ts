@@ -29,13 +29,18 @@ export interface OAuthOptions {
   resource: string
   /** Lebensdauer einer Verbindung ab Zustimmung */
   connectionSeconds: number
+  /**
+   * Verbindung darf die Sitzung der Zustimmung überdauern (App legt eine eigene Dauer fest, z. B. 30 Tage).
+   * Standard: Sie endet spätestens mit der Sitzung.
+   */
+  outlivesSession?: boolean
   /** Zeitquelle, in Tests austauschbar */
   now?: () => Date
 }
 
-export function oauthOptions(appUrl: string, connectionSeconds: number, now?: () => Date): OAuthOptions {
+export function oauthOptions(appUrl: string, connectionSeconds: number, now?: () => Date, extra: { outlivesSession?: boolean } = {}): OAuthOptions {
   const issuer = appUrl.replace(/\/+$/, '')
-  return { issuer, resource: `${issuer}/mcp`, connectionSeconds, now }
+  return { issuer, resource: `${issuer}/mcp`, connectionSeconds, now, ...(extra.outlivesSession && { outlivesSession: true }) }
 }
 
 export function currentTime(o: OAuthOptions): Date {

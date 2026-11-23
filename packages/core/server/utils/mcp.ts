@@ -6,9 +6,15 @@ import type { ConsentSession, OAuthOptions } from '../oauth'
 import { buildMcpServer } from '../mcp'
 import type { McpServerDefinition } from '../mcp'
 
-/** Adresse, Verbindungsdauer (= Sitzungsdauer) und Zeitquelle für alle OAuth-Funktionen */
+/**
+ * Adresse, Verbindungsdauer und Zeitquelle für alle OAuth-Funktionen. Verbindungsdauer: `mcp.connectionSeconds` der
+ * App (NUXT_MCP_CONNECTION_SECONDS; dann darf die Verbindung die Sitzung überdauern), sonst die Sitzungsdauer.
+ */
 export function useOAuthOptions(): OAuthOptions {
-  const { public: { appUrl }, session: { maxAge } } = useRuntimeConfig()
+  const config = useRuntimeConfig()
+  const { public: { appUrl }, session: { maxAge } } = config
+  const configured = Number((config as { mcp?: { connectionSeconds?: unknown } }).mcp?.connectionSeconds)
+  if (Number.isInteger(configured) && configured > 0) return oauthOptions(appUrl, configured, undefined, { outlivesSession: true })
   return oauthOptions(appUrl, maxAge)
 }
 

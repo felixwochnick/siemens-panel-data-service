@@ -466,6 +466,16 @@ describe(`OAuth (${TEST_DIALECT})`, () => {
       expect(await endOf(await codeFor(new Date(now.getTime() + 20 * HOUR)))).toEqual(new Date(now.getTime() + 12 * HOUR))
     })
 
+    it('mit eigener Verbindungsdauer (outlivesSession) endet die Verbindung unabhängig von der Sitzung', async () => {
+      const long = oauthOptions('https://tp.example', 30 * 24 * 3600, () => now, { outlivesSession: true })
+      const reg = await register()
+      const userId = await user()
+      const url = new URL(await approveAuthorization(t.db, long, userId, authorizeQuery(reg.client_id), 'read', new Date(now.getTime() + 2 * HOUR)))
+      const row = await t.db.selectFrom('core.oauthCodes').select('connectionExpiresAt')
+        .where('codeHash', '=', hashSecret(url.searchParams.get('code')!)).executeTakeFirstOrThrow()
+      expect(row.connectionExpiresAt).toEqual(new Date(now.getTime() + 30 * 24 * HOUR))
+    })
+
     it('zeigt Programmname, Rücksprung-Host und angefragte Stufe', async () => {
       const reg = await register({ redirect_uris: ['https://claude.ai/api/mcp/auth_callback'] })
       const query = authorizeQuery(reg.client_id, { redirect_uri: 'https://claude.ai/api/mcp/auth_callback' })

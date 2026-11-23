@@ -111,7 +111,8 @@ export async function loadConsentSession(db: Kysely<CoreDatabase>, sessionId: st
 /**
  * Zustimmung der Person: legt den Code an (10 min, einmalig) und liefert die Rücksprung-URL mit code, state, iss.
  * Die Verbindung endet spätestens mit der Sitzung, in der zugestimmt wurde – nie später als die Anmeldung in der
- * Oberfläche; das Ende steht am Code, damit der Tausch es übernimmt.
+ * Oberfläche –, außer die App erlaubt längere Verbindungen (`outlivesSession`, Laufzeit-Option
+ * `mcp.connectionSeconds`); das Ende steht am Code, damit der Tausch es übernimmt.
  */
 export async function approveAuthorization(db: Kysely<CoreDatabase>, o: OAuthOptions, userId: string, query: unknown, access: McpGrant, sessionExpiresAt: Date): Promise<string> {
   const now = currentTime(o)
@@ -127,7 +128,7 @@ export async function approveAuthorization(db: Kysely<CoreDatabase>, o: OAuthOpt
     codeChallenge: params.code_challenge,
     access,
     expiresAt: addSeconds(now, CODE_SECONDS),
-    connectionExpiresAt: new Date(Math.min(addSeconds(now, o.connectionSeconds).getTime(), sessionExpiresAt.getTime())),
+    connectionExpiresAt: new Date(Math.min(addSeconds(now, o.connectionSeconds).getTime(), o.outlivesSession ? Infinity : sessionExpiresAt.getTime())),
   }).execute()
   return redirectWith(o, params.redirect_uri, { code, state: params.state })
 }
