@@ -81,6 +81,8 @@ braucht dort ggf. eine eigene Lizenz und Einstellungen. Das Dienstkonto muss EPL
 ## Konfiguration (`config.yaml`)
 
 Relative Pfade beziehen sich auf den Ordner der config.yaml.
+Die Umgebungsvariablen `PROJECTS_PATH` und `OUTPUT_PATH` überschreiben `project_folder` und `output_folder`; die
+VS Code Startkonfiguration „Alle Projekte exportieren“ liest sie aus der `.env` im Projektordner.
 
 ```yaml
 logging:

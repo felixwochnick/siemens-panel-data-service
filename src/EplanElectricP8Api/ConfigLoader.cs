@@ -23,6 +23,10 @@ namespace EplanElectricP8Api
             config.Export = config.Export ?? new ExportConfig();
             config.Export.Labels = config.Export.Labels ?? LabelExportConfig.Defaults();
 
+            // Umgebungsvariablen (z.B. aus der .env beim Debuggen) haben Vorrang vor der config.yaml
+            config.Export.ProjectFolder = Environment.GetEnvironmentVariable("PROJECTS_PATH") ?? config.Export.ProjectFolder;
+            config.Export.OutputFolder = Environment.GetEnvironmentVariable("OUTPUT_PATH") ?? config.Export.OutputFolder;
+
             // Relative Pfade beziehen sich auf den Ordner der config.yaml (ein Dienst läuft in C:\Windows\System32)
             string baseDir = Path.GetDirectoryName(Path.GetFullPath(path));
             config.Logging.Directory = Resolve(baseDir, config.Logging.Directory);

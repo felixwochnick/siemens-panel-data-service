@@ -15,12 +15,14 @@
       "justMyCode": true
     },
     {
-      "name": "Export-Lauf sofort (run --now)",
+      // PROJECTS_PATH und OUTPUT_PATH aus der .env überschreiben project_folder/output_folder der config.yaml
+      "name": "Alle Projekte exportieren (run --now, Pfade aus .env)",
       "type": "clr",
       "request": "launch",
       "preLaunchTask": "build",
       "program": "${workspaceFolder}/src/EplanElectricP8Api/bin/Debug/net481/EplanElectricP8Api.exe",
       "args": ["run", "--now"],
+      "envFile": "${workspaceFolder}/.env",
       "cwd": "${workspaceFolder}/src/EplanElectricP8Api/bin/Debug/net481",
       "console": "integratedTerminal",
       "stopAtEntry": false,
