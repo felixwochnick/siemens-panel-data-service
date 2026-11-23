@@ -1,0 +1,19 @@
+{
+  "logs": {
+    "title": "Logs",
+    "notConfigured": "Logs are only available in the Windows service",
+    "notConfiguredHint": "The service passes the folder with service.log, app.log and the logs of the EPLAN worker to the app via NUXT_LOG_DIR. Here the app runs without this folder (for example during development).",
+    "unreadable": "The log folder is not readable",
+    "unreadableHint": "Please check that the folder exists and the service account may read it.",
+    "empty": "No log files",
+    "file": "File",
+    "lines": "Lines",
+    "filter": "Filter text",
+    "download": "Download",
+    "autoRefresh": "Refresh automatically",
+    "truncated": "Older lines are hidden.",
+    "noLines": "No lines",
+    "noMatches": "No lines with “{filter}”",
+    "size": "{size}, changed {at}"
+  }
+}

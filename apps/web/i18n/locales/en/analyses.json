@@ -96,5 +96,44 @@
     "interrupted": "The analysis was interrupted because the service stopped",
     "shutting_down": "The analysis was aborted because the service is stopping",
     "unexpected_error": "Unexpected error"
+  },
+  "analysis": {
+    "title": "Analysis #{id}",
+    "live": "Updating live",
+    "stage": "Stage",
+    "trigger": "Trigger",
+    "queued": "Queued",
+    "started": "Started",
+    "finished": "Finished",
+    "eplanProject": "Project according to EPLAN",
+    "versions": "Versions",
+    "worker": "Worker",
+    "events": "Events",
+    "level": "Level of events",
+    "allLevels": "All events",
+    "minLevel": {
+      "info": "Info and above",
+      "warn": "Warnings and errors",
+      "error": "Errors only"
+    },
+    "noEvents": "No events yet.",
+    "noEventsFiltered": "No events of this level.",
+    "showing": "{shown} of {total}",
+    "loadMore": "Load more",
+    "notFound": "Analysis not found",
+    "backToProject": "Back to project {name}",
+    "showDetail": "Details",
+    "counts": {
+      "connections": "Connections",
+      "cables": "Cables",
+      "shields": "Shields",
+      "texts": "Texts",
+      "pages": "Pages",
+      "hashMarks": "# marks",
+      "twisted": "Twisted",
+      "shielded": "Shielded",
+      "unmatched": "{count} without connection",
+      "unmatchedTicks": "{count} without connection"
+    }
   }
 }

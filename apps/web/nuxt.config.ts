@@ -45,7 +45,7 @@ export default defineNuxtConfig({
   i18n: {
     locales: ['de', 'en'].map(code => ({
       code,
-      files: ['app', 'analyses', 'settings'].map(f => `${code}/${f}.json`),
+      files: ['app', 'analyses', 'projects', 'results', 'settings', 'logs'].map(f => `${code}/${f}.json`),
     })),
   },
 })

@@ -24,5 +24,121 @@
     "worker_not_configured": "Kein EPLAN-Worker eingestellt",
     "worker_unreachable": "EPLAN-Worker nicht erreichbar",
     "worker_failed": "EPLAN konnte im Worker nicht gestartet werden"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "test": "Verbindung testen",
+    "lastSaved": "Zuletzt gespeichert am {at} von {name}",
+    "neverSaved": "Noch nie gespeichert – es gelten die Standardwerte.",
+    "issuesTitle": "Für Analysen bzw. den Zeitplan fehlt noch etwas",
+    "saved": "Einstellungen gespeichert",
+    "unchanged": "Keine Änderungen",
+    "invalid": "Einige Einstellungen sind ungültig. Bitte die markierten Felder prüfen.",
+    "unsaved": "Ungespeicherte Änderungen",
+    "discard": "Verwerfen",
+    "save": "Speichern",
+    "unsavedLeave": "Die Einstellungen enthalten ungespeicherte Änderungen. Seite trotzdem verlassen?",
+    "sections": {
+      "folder": {
+        "title": "Projektordner",
+        "description": "Wo die Projekte liegen, die der Zeitplan und „Aus Ordner wählen“ finden. Analysiert wird immer eine Kopie."
+      },
+      "networkDrive": {
+        "title": "Netzlaufwerk",
+        "description": "Liegt der Projektordner auf einer Freigabe, verbindet der Dienst sie vor jedem Zugriff (nur Windows).",
+        "inactive": "Nur wirksam, wenn oben „Netzlaufwerk“ gewählt ist."
+      },
+      "eplan": {
+        "title": "EPLAN",
+        "description": "Installation, die der EPLAN-Worker startet. Nach einer Änderung startet der Worker neu."
+      },
+      "schedule": {
+        "title": "Zeitplan",
+        "description": "Durchsucht den Projektordner regelmäßig und analysiert neue, geänderte und zuletzt gescheiterte Projekte."
+      },
+      "analysis": {
+        "title": "Analyse",
+        "description": "Grenzen für Analysen und hochgeladene Dateien."
+      }
+    },
+    "fields": {
+      "folder": "Projektordner",
+      "source": "Ort",
+      "recursive": "Unterordner",
+      "filePatterns": "Dateimuster",
+      "networkDrive": {
+        "mapping": "Laufwerksbuchstabe",
+        "networkPath": "Freigabe (UNC-Pfad)",
+        "user": "Benutzer",
+        "password": "Passwort"
+      },
+      "eplan": {
+        "platformBin": "Bin-Ordner EPLAN Platform",
+        "productBin": "Bin-Ordner EPLAN Electric P8",
+        "applicationModifier": "Variante",
+        "openMode": "Öffnungsmodus"
+      },
+      "schedulerEnabled": "Zeitplan eingeschaltet",
+      "cronSchedule": "Cron-Ausdruck",
+      "timezone": "Zeitzone",
+      "analysisTimeoutMinutes": "Zeitlimit (Minuten)",
+      "retentionDays": "Aufbewahrung (Tage)",
+      "uploadMaxMb": "Größte Upload-Datei (MB)"
+    },
+    "help": {
+      "folder": "Lokaler Pfad, Laufwerk oder UNC-Pfad. Leer: keine Projekte aus einem Ordner, nur Hochladen.",
+      "filePatterns": "Mit Enter hinzufügen, z. B. *.elk und *.zw1. Nur .elk (mit .edb-Ordner) und .zw1 sind Projekte.",
+      "recursive": "Unterordner durchsuchen",
+      "mapping": "Optional, z. B. P. Leer: nur die UNC-Verbindung.",
+      "networkUser": "z. B. DOMÄNE\\benutzer; leer: Konto des Dienstes",
+      "applicationModifier": "Leer: Variante aus der install.xml",
+      "openMode": "ReadOnly verändert das Projekt nicht und ist empfohlen.",
+      "schedulerEnabled": "Nach der Installation aus: es wird nichts ungefragt analysiert.",
+      "cronSchedule": "Quartz (Sek Min Std Tag Monat Wochentag) oder klassisch mit 5 Feldern.",
+      "analysisTimeoutMinutes": "Danach scheitert die Analyse und der Worker startet neu.",
+      "retentionDays": "Ältere Stände werden gelöscht, der aktuelle je Projekt bleibt.",
+      "uploadMaxMb": "Größere .zw1-Dateien lehnt der Server ab."
+    },
+    "sources": {
+      "local": "Lokal oder bereits verbunden",
+      "network": "Netzlaufwerk"
+    },
+    "openModes": {
+      "ReadOnly": "Nur lesen (ReadOnly)",
+      "Standard": "Standard",
+      "Exclusive": "Exklusiv (Exclusive)"
+    },
+    "cron": {
+      "examples": "Beispiele",
+      "daily": "täglich 02:00",
+      "weekdays": "werktags 06:00",
+      "hourly": "stündlich",
+      "every15": "alle 15 Minuten",
+      "preview": "Nächste Läufe",
+      "previewOff": "Nächste Läufe (wenn eingeschaltet)",
+      "previewInvalid": "Kein gültiger Cron-Ausdruck oder keine gültige Zeitzone."
+    },
+    "secret": {
+      "set": "Gespeichert",
+      "notSet": "Nicht gesetzt",
+      "unreadable": "Nicht lesbar",
+      "willClear": "Wird beim Speichern entfernt",
+      "reenter": "Bitte neu eingeben",
+      "change": "Ändern",
+      "enter": "Eingeben",
+      "remove": "Entfernen",
+      "cancel": "Abbrechen",
+      "placeholder": "Neues Passwort",
+      "retargetDrive": "Freigabe oder Benutzer geändert: Das gespeicherte Passwort gilt nur für das bisherige Ziel. Bitte neu eingeben."
+    },
+    "testDialog": {
+      "title": "Verbindung testen",
+      "description": "Mit den Werten des Formulars, auch wenn sie noch nicht gespeichert sind.",
+      "running": "Test läuft …",
+      "drive": "Netzlaufwerk",
+      "folder": "Projektordner",
+      "worker": "EPLAN-Worker",
+      "again": "Erneut testen"
+    }
   }
 }

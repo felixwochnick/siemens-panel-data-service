@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
 
-// Vorläufiges Gerüst (Task 3); die Oberfläche mit Projekten, Tabellen und Einstellungen folgt
 const { t } = useI18n()
 const route = useRoute()
+const { isAdmin } = useAuth()
 // Nur ein echtes `true` schaltet ein; aus ⇒ kein Eintrag
 const mcpEnabled = useRuntimeConfig().public.mcpEnabled === true
 
@@ -11,8 +11,19 @@ const open = ref(false)
 // Mobil: Menü nach Navigation schließen
 watch(() => route.fullPath, () => (open.value = false))
 
+// Unterseiten (z. B. /projects/12, /analyses/3) markieren ihren Eintrag
+const under = (...paths: string[]) => paths.some(path => route.path === path || route.path.startsWith(`${path}/`))
+
 const nav = computed<NavigationMenuItem[]>(() => [
   { label: t('app.nav.overview'), icon: 'siemens:home', to: '/', exact: true },
+  { label: t('app.nav.projects'), icon: 'siemens:folder', to: '/projects', active: under('/projects', '/analyses') },
+  // Einstellungen und Protokolle nur für Admins (die API verlangt die Rolle ohnehin)
+  ...(isAdmin.value
+    ? [
+        { label: t('app.nav.settings'), icon: 'siemens:settings', to: '/settings', active: under('/settings') },
+        { label: t('app.nav.logs'), icon: 'siemens:document-text', to: '/logs', active: under('/logs') },
+      ]
+    : []),
 ])
 
 const secondaryNav = computed<NavigationMenuItem[]>(() => mcpEnabled

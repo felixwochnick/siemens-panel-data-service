@@ -3,16 +3,10 @@
     "name": "Panel Data Service",
     "nav": {
       "overview": "Overview",
+      "projects": "Projects",
+      "settings": "Settings",
+      "logs": "Logs",
       "assistants": "AI assistants"
-    },
-    "overview": {
-      "title": "Overview",
-      "worker": "EPLAN worker",
-      "queue": "Queue",
-      "running": "Running",
-      "queued": "Waiting: {count}",
-      "recent": "Recently analyzed",
-      "none": "None"
     },
     "workerStates": {
       "disabled": "No worker configured",
@@ -24,6 +18,88 @@
     "via": {
       "ui": "Web app",
       "mcp": "AI assistant"
+    },
+    "error": {
+      "home": "Go to overview",
+      "forbidden": {
+        "title": "No access",
+        "text": "This page is for administrators only. Projects and results remain available to you."
+      },
+      "notFound": {
+        "title": "Page not found",
+        "text": "This address does not exist (anymore). The project or analysis may have been deleted."
+      },
+      "general": {
+        "title": "Something went wrong",
+        "text": "Please reload the page. If the error persists, contact the administrators."
+      }
+    }
+  },
+  "overview": {
+    "title": "Overview",
+    "issues": {
+      "title": "The settings are incomplete",
+      "unsaved": "The settings have never been saved (defaults apply).",
+      "unreadableTitle": "Stored password not readable",
+      "unreadableText": "The network drive password cannot be decrypted with the current app secret. Please enter it again in the settings.",
+      "fix": "Go to settings"
+    },
+    "worker": {
+      "title": "EPLAN worker",
+      "eplan": "EPLAN",
+      "busy": "busy",
+      "version": "Version",
+      "transports": {
+        "pipe": "Service (named pipe)",
+        "spawn": "Process (development)"
+      },
+      "since": "Since",
+      "restart": "Restart worker",
+      "restartTitle": "Restart the EPLAN worker?",
+      "restartQuestion": "EPLAN is stopped and started again with the next job. A running analysis fails.",
+      "restarted": "The EPLAN worker is restarting.",
+      "hint": {
+        "disabled": "No EPLAN worker configured",
+        "disconnected": "The EPLAN worker is not reachable",
+        "text": "Uploaded projects and selected analyses wait in the queue until the worker is connected again."
+      }
+    },
+    "queue": {
+      "title": "Queue",
+      "waiting": "Waiting: {count}",
+      "since": "for {duration}",
+      "idle": "No analysis is running.",
+      "more": "and {count} more"
+    },
+    "schedule": {
+      "title": "Schedule",
+      "on": "On",
+      "off": "Off",
+      "toggle": "Switch the schedule on or off",
+      "invalid": "The cron expression or the time zone is invalid.",
+      "notActive": "The schedule is switched on but not scheduled in this process (check the settings).",
+      "next": "Next runs",
+      "offHint": "Switched off: projects in the project folder are only analyzed on request.",
+      "edit": "Edit schedule",
+      "switchedOn": "Schedule switched on",
+      "switchedOff": "Schedule switched off"
+    },
+    "recent": {
+      "title": "Recently analyzed",
+      "all": "All projects",
+      "summary": "{connections} connections, {cables} cables",
+      "none": "No analyses yet",
+      "noneHint": "Upload a project archive (.zw1) or choose projects from the project folder."
+    },
+    "audit": {
+      "title": "Recent changes",
+      "empty": "No changes yet.",
+      "viaMcp": "AI assistant"
+    },
+    "database": "Database: {name}",
+    "databases": {
+      "mssql": "SQL Server",
+      "sqlite": "SQLite"
     }
   },
   "auth": {

@@ -96,5 +96,44 @@
     "interrupted": "Die Analyse wurde unterbrochen, weil der Dienst beendet wurde",
     "shutting_down": "Die Analyse wurde abgebrochen, weil der Dienst beendet wird",
     "unexpected_error": "Unerwarteter Fehler"
+  },
+  "analysis": {
+    "title": "Analyse #{id}",
+    "live": "Wird laufend aktualisiert",
+    "stage": "Stufe",
+    "trigger": "Auslöser",
+    "queued": "Eingereiht",
+    "started": "Gestartet",
+    "finished": "Beendet",
+    "eplanProject": "Projekt laut EPLAN",
+    "versions": "Versionen",
+    "worker": "Worker",
+    "events": "Ereignisse",
+    "level": "Stufe der Ereignisse",
+    "allLevels": "Alle Ereignisse",
+    "minLevel": {
+      "info": "Ab Info",
+      "warn": "Warnungen und Fehler",
+      "error": "Nur Fehler"
+    },
+    "noEvents": "Noch keine Ereignisse.",
+    "noEventsFiltered": "Keine Ereignisse dieser Stufe.",
+    "showing": "{shown} von {total}",
+    "loadMore": "Mehr laden",
+    "notFound": "Analyse nicht gefunden",
+    "backToProject": "Zum Projekt {name}",
+    "showDetail": "Details",
+    "counts": {
+      "connections": "Verbindungen",
+      "cables": "Kabel",
+      "shields": "Schirme",
+      "texts": "Texte",
+      "pages": "Seiten",
+      "hashMarks": "#-Markierungen",
+      "twisted": "Verdrillt",
+      "shielded": "Abgeschirmt",
+      "unmatched": "{count} ohne Verbindung",
+      "unmatchedTicks": "{count} ohne Verbindung"
+    }
   }
 }

@@ -19,7 +19,7 @@ import {
 type Messages = { [key: string]: string | Messages }
 
 const root = join(import.meta.dirname, '..')
-const APP_FILES = ['app', 'analyses', 'settings']
+const APP_FILES = ['app', 'analyses', 'projects', 'results', 'settings', 'logs']
 
 const readJson = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as Messages
 

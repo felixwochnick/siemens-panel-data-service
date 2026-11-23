@@ -283,6 +283,14 @@ export interface PdsSettings {
   uploadMaxMb: number
 }
 
+/** Grenzen der Zahlenwerte in den Einstellungen (Prüfung im Server, Formular, MCP) */
+export const SETTINGS_LIMITS = {
+  analysisTimeoutMinutes: { min: 1, max: 1440 },
+  retentionDays: { min: 1, max: 3650 },
+  uploadMaxMb: { min: 1, max: 10_240 },
+  filePatterns: { max: 20 },
+} as const
+
 export interface SettingsIssue {
   /** Pfad des Felds, z. B. `networkDrive.networkPath` */
   path: string

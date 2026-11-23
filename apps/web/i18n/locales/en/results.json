@@ -1,0 +1,96 @@
+{
+  "results": {
+    "tabs": {
+      "connections": "Connections",
+      "cables": "Cables",
+      "shields": "Shields",
+      "texts": "Texts"
+    },
+    "yes": "yes",
+    "jumpToConnection": "Jump to the connection",
+    "empty": {
+      "connections": "This project has no connections.",
+      "cables": "This project has no cables.",
+      "shields": "This project has no shields.",
+      "texts": "This project has no free texts."
+    },
+    "columns": {
+      "connections": {
+        "page": "Page",
+        "definition": "Function definition",
+        "designation": "Connection designation",
+        "source": "Source",
+        "destination": "Target",
+        "cable": "Cable",
+        "wireNumber": "Color/number",
+        "crossSection": "Cross-section",
+        "wireType": "Type",
+        "length": "Length",
+        "partNumbers": "Part number",
+        "hashMark": "# mark",
+        "twisted": "Twisted",
+        "shielded": "Shielded"
+      },
+      "cables": {
+        "name": "Cable",
+        "definition": "Function definition",
+        "page": "Page",
+        "source": "Source",
+        "destination": "Target",
+        "type": "Type",
+        "wireCountAndCrossSection": "Wires x cross-section",
+        "length": "Length",
+        "wireNumber": "Color/number",
+        "crossSection": "Cross-section",
+        "partNumbers": "Part number"
+      },
+      "shields": {
+        "page": "Page",
+        "name": "Shield",
+        "type": "Type",
+        "wireCountAndCrossSection": "Wires x cross-section",
+        "wireCount": "Number of wires",
+        "wires": "Wires"
+      },
+      "texts": {
+        "page": "Page",
+        "text": "Text"
+      }
+    }
+  },
+  "sheet": {
+    "search": "Search all columns",
+    "count": "{shown} of {total} rows",
+    "resetFilters": "Reset filters",
+    "selection": "{rows} × {cols} selected",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "export": "Export",
+    "exportXlsx": "Excel (.xlsx)",
+    "exportXlsxHint": "Filtered rows in this order, all values as text",
+    "exportCsv": "CSV (semicolon)",
+    "exportCsvHint": "Values starting with = + - {'@'} get a ' in front (protection against formulas)",
+    "exportFailed": "The export could not be created.",
+    "pinFirst": "Freeze first column",
+    "unpinFirst": "Unfreeze first column",
+    "resetWidths": "Reset column widths",
+    "selectAll": "Select all",
+    "rowNumber": "No.",
+    "resizeColumn": "Change the width of column {column}",
+    "filterPlaceholder": "contains …",
+    "filterLabel": "Filter {column}",
+    "flag": {
+      "all": "all",
+      "yes": "yes",
+      "no": "no"
+    },
+    "copied": "{rows} × {cols} cells copied",
+    "copiedWithHeader": "{rows} × {cols} cells copied with header",
+    "copyFailed": "Copying to the clipboard failed.",
+    "noMatches": "No row matches the filter or search.",
+    "noRows": "No rows",
+    "hint": "Click a header to sort (ascending, descending, off). Select with the mouse, Shift+click or Shift+arrow keys; Ctrl+C copies for Excel. Ctrl+Space selects whole columns – then with header. Drag a column edge to change its width, double-click to fit."
+  }
+}

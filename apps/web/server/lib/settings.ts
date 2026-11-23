@@ -1,5 +1,5 @@
 // Standardwerte und Prüfung der Einstellungen; Pfad-Hilfen aus dem ESWC-Controller (packages/controller/src/settings.ts)
-import { EPLAN_OPEN_MODES } from '../../shared/types/api'
+import { EPLAN_OPEN_MODES, SETTINGS_LIMITS } from '../../shared/types/api'
 import type { PdsSettings, SettingsIssue, SettingsIssueCode } from '../../shared/types/api'
 import { isValidCron } from './schedule'
 
@@ -25,13 +25,8 @@ export const defaultSettings: PdsSettings = {
   uploadMaxMb: 500,
 }
 
-/** Grenzen der Zahlenwerte (Prüfung und Formular) */
-export const LIMITS = {
-  analysisTimeoutMinutes: { min: 1, max: 1440 },
-  retentionDays: { min: 1, max: 3650 },
-  uploadMaxMb: { min: 1, max: 10_240 },
-  filePatterns: { max: 20 },
-} as const
+/** Grenzen der Zahlenwerte (Prüfung und Formular; steht im gemeinsamen Vertrag, damit das Formular sie kennt) */
+export const LIMITS = SETTINGS_LIMITS
 
 export function isValidTimezone(tz: string): boolean {
   if (!tz) return false
