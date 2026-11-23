@@ -456,3 +456,12 @@ Grenzwerte, Puffern der Ereignisse, Aufbau des Ersatz-Workers.
 - Hochladen nur `.zw1`; gleicher Name ⇒ gleiches Projekt, neuer Stand.
 - Ergebnisse normalisiert (Kabel/Adern, Schirme/Adern getrennt) plus `v_current_*`-Sichten.
 - Name „EPLAN Panel Data Service“ / `pds`.
+- Tabellenansicht: `Strg+C` kopiert einen Zellbereich als TSV ohne Kopfzeile (passt in bestehende Zeilen); ganze
+  Spalten (`Strg+Leertaste`, `Strg+A`, Ecke links oben) mit Kopfzeile (wird meist als eigene Tabelle eingefügt).
+- CSV-Export: Werte, die mit `=`, `+`, `-`, `@` beginnen, bekommen ein `'` davor (Schutz vor Formeln, Kennzeichen
+  bleiben lesbar); der `.xlsx`-Export hat echte Textzellen ohne Zeichen davor und ist für Excel die erste Wahl.
+- Kabel und Schirme als Baum (Hauptzeile, darunter eingerückt die Adern, einklappbar); Filter wie der Excel-Autofilter:
+  Adern erscheinen nur, wenn sie selbst passen, eine passende Ader bringt ihre Hauptzeile mit. Der Export enthält Haupt-
+  und Aderzeilen (auch zugeklappte); im Tab Schirme steht je Ader eine Zeile statt der Spalten „Ader 1…n“.
+- Nicht-Admins sehen Einstellungen und Protokolle nicht in der Navigation; direkte Adressen zeigen „Kein Zugriff“ (403)
+  mit Navigation.
