@@ -1,0 +1,87 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- EPLAN Offline-Anwendung: pds-eplan.exe service|run|stdio -->
+    <OutputType>Exe</OutputType>
+    <!-- EPLAN Platform 2025 basiert auf .NET Framework 4.8.1 -->
+    <TargetFramework>net481</TargetFramework>
+    <!-- EPLAN ist 64-Bit, der Worker daher ebenfalls -->
+    <PlatformTarget>x64</PlatformTarget>
+    <RootNamespace>Pds.EplanWorker</RootNamespace>
+    <AssemblyName>pds-eplan</AssemblyName>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Pfad zu den EPLAN-API-DLLs; kann per "dotnet build -p:EplanBinPath=..." überschrieben werden -->
+    <EplanBinPath Condition="'$(EplanBinPath)' == ''">C:\Program Files\EPLAN\Platform\2025.0.3\Bin</EplanBinPath>
+    <!--
+      Ohne EPLAN-Installation (Linux, CI) wird gegen die Compile-Stubs in worker/stubs gebaut. So ein Build prüft nur,
+      dass alles kompiliert, und läuft NICHT: jeder EPLAN-Zugriff wirft NotImplementedException (Analyse ⇒
+      eplan_start_failed). Ein Release-Build für Windows (MSI) muss gegen die echten DLLs gebaut werden, also auf
+      einem Rechner mit EPLAN bzw. mit -p:EplanBinPath=<Ordner mit den Eplan.EplApi.*u.dll>.
+    -->
+    <UseEplanStubs Condition="'$(UseEplanStubs)' == '' And !Exists('$(EplanBinPath)\Eplan.EplApi.Baseu.dll')">true</UseEplanStubs>
+    <DefineConstants Condition="'$(UseEplanStubs)' == 'true'">$(DefineConstants);EPLAN_STUBS</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(UseEplanStubs)' != 'true'">
+    <!-- Der Starter wird ins Ausgabeverzeichnis kopiert: er findet zur Laufzeit die übrigen EPLAN-DLLs -->
+    <Reference Include="Eplan.EplApi.Starteru">
+      <HintPath>$(EplanBinPath)\Eplan.EplApi.Starteru.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <!--
+      Übrige EPLAN-API-Referenzen: nicht kopieren, sie werden zur Laufzeit über den AssemblyResolver aus dem
+      EPLAN-Bin-Ordner geladen. AFu, EServicesu und MasterDatau verwendet der Worker nicht direkt; sie bleiben wie im
+      bisherigen Stand referenziert, weil die übrigen DLLs Typen daraus in ihren Signaturen haben können (CS0012).
+    -->
+    <Reference Include="Eplan.EplApi.AFu">
+      <HintPath>$(EplanBinPath)\Eplan.EplApi.AFu.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Eplan.EplApi.EServicesu">
+      <HintPath>$(EplanBinPath)\Eplan.EplApi.EServicesu.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Eplan.EplApi.MasterDatau">
+      <HintPath>$(EplanBinPath)\Eplan.EplApi.MasterDatau.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Eplan.EplApi.Baseu">
+      <HintPath>$(EplanBinPath)\Eplan.EplApi.Baseu.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Eplan.EplApi.DataModelu">
+      <HintPath>$(EplanBinPath)\Eplan.EplApi.DataModelu.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Eplan.EplApi.HEServicesu">
+      <HintPath>$(EplanBinPath)\Eplan.EplApi.HEServicesu.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Eplan.EplApi.Systemu">
+      <HintPath>$(EplanBinPath)\Eplan.EplApi.Systemu.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseEplanStubs)' == 'true'">
+    <ProjectReference Include="..\..\stubs\Eplan.EplApi.Stubs\Eplan.EplApi.Stubs.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Pds.EplanWorker.Core\Pds.EplanWorker.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.15" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+  </ItemGroup>
+
+  <Target Name="WarnEplanStubs" BeforeTargets="CoreCompile" Condition="'$(UseEplanStubs)' == 'true'">
+    <Message Importance="high" Text="pds-eplan: EPLAN-DLLs nicht gefunden ($(EplanBinPath)), Build gegen Compile-Stubs – nicht lauffähig." />
+  </Target>
+
+</Project>

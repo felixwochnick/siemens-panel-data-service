@@ -1,0 +1,3 @@
+# C# wie im bisherigen .NET-Stand mit 4 Leerzeichen; alles andere erbt von der .editorconfig im Wurzelordner
+[*.cs]
+indent_size = 4

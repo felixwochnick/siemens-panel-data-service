@@ -3,7 +3,7 @@ using System.IO;
 using Serilog;
 using Serilog.Events;
 
-namespace EplanElectricP8Api
+namespace Pds.EplanWorker
 {
     internal static class LoggingSetup
     {
@@ -11,28 +11,39 @@ namespace EplanElectricP8Api
         private const string FileTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}";
 
         /// <summary>
-        /// Konfiguriert Serilog für Konsole und, wenn <paramref name="logDirectory"/> gesetzt ist, für eine tägliche Log-Datei.
+        /// Serilog nach stderr (nie stdout: im Modus stdio gehört stdout dem Protokoll) und, wenn
+        /// <paramref name="logDirectory"/> gesetzt ist, in die tägliche Datei <c>eplan-worker-&lt;Datum&gt;.log</c>.
         /// </summary>
-        public static void Configure(string level, string logDirectory)
+        public static void Configure(string logDirectory)
         {
-            var logLevel = Enum.TryParse(level, true, out LogEventLevel parsed) ? parsed : LogEventLevel.Information;
-
-            var logger = new LoggerConfiguration()
-                .MinimumLevel.Is(logLevel)
+            var config = new LoggerConfiguration()
+                .MinimumLevel.Information()
                 .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-                .MinimumLevel.Override("Quartz", LogEventLevel.Warning)
-                .WriteTo.Console(outputTemplate: ConsoleTemplate);
+                .WriteTo.Console(outputTemplate: ConsoleTemplate, standardErrorFromLevel: LogEventLevel.Verbose);
 
+            string fileError = null;
             if (!string.IsNullOrEmpty(logDirectory))
             {
-                Directory.CreateDirectory(logDirectory);
-                logger.WriteTo.File(
-                    Path.Combine(logDirectory, "eplan-export_.log"),
-                    rollingInterval: RollingInterval.Day,
-                    outputTemplate: FileTemplate);
+                try
+                {
+                    Directory.CreateDirectory(logDirectory);
+                    config.WriteTo.File(
+                        Path.Combine(logDirectory, "eplan-worker-.log"),
+                        rollingInterval: RollingInterval.Day,
+                        retainedFileCountLimit: 31,
+                        outputTemplate: FileTemplate);
+                }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    fileError = ex.Message;
+                }
             }
 
-            Log.Logger = logger.CreateLogger();
+            Log.Logger = config.CreateLogger();
+            if (fileError != null)
+            {
+                Log.Warning("Log-Ordner {Folder} nicht nutzbar, Logs nur auf stderr: {Error}", logDirectory, fileError);
+            }
         }
     }
 }

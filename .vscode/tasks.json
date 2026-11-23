@@ -2,12 +2,13 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build",
+      // EPLAN-Worker mit Tests; ohne EPLAN-Installation gegen die Compile-Stubs (worker/stubs)
+      "label": "worker: build",
       "type": "process",
       "command": "dotnet",
       "args": [
         "build",
-        "${workspaceFolder}/src/EplanElectricP8Api/EplanElectricP8Api.csproj",
+        "${workspaceFolder}/worker/Pds.EplanWorker.slnx",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],
@@ -15,6 +16,19 @@
         "kind": "build",
         "isDefault": true
       },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "worker: test",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "test",
+        "${workspaceFolder}/worker/tests/Pds.EplanWorker.Tests",
+        "/property:GenerateFullPaths=true",
+        "/consoleloggerparameters:NoSummary"
+      ],
+      "group": "test",
       "problemMatcher": "$msCompile"
     }
   ]

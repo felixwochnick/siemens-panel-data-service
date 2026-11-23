@@ -1,0 +1,22 @@
+<Project>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Product>EPLAN Panel Data Service</Product>
+    <Company>Siemens</Company>
+    <!-- Version des Workers (hello.version, raw.json "worker"); CI überschreibt sie mit -p:Version=… -->
+    <Version>1.0.0</Version>
+    <!-- Ohne "+<commit>" am Ende: der Client vergleicht die Version als Text -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <!--
+      .NET-Framework-Referenzassemblies immer aus dem NuGet-Paket Microsoft.NETFramework.ReferenceAssemblies (macht
+      das SDK automatisch): Unter Linux gibt es kein Developer Pack, und auch unter Windows (Entwicklerrechner, CI)
+      baut so jeder gegen genau dieselben Referenzassemblies, ohne dass ein Developer Pack installiert sein muss.
+      Zur Laufzeit ändert das nichts, das Paket enthält nur Referenzassemblies.
+    -->
+    <AutomaticallyUseReferenceAssemblyPackages>true</AutomaticallyUseReferenceAssemblyPackages>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Compile-Stubs der EPLAN-API für Builds ohne EPLAN (Linux, CI): nur die Typen und Mitglieder, die der Worker
+    verwendet, mit denselben Namespaces und Signaturen wie die echten Eplan.EplApi.*u.dll. Alle Rümpfe werfen
+    NotImplementedException – ein gegen die Stubs gebauter Worker startet EPLAN nie.
+    Neue EPLAN-Zugriffe im Worker brauchen hier ein passendes Mitglied; die Signatur aus der EPLAN-API-Doku übernehmen.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net481</TargetFramework>
+    <AssemblyName>Eplan.EplApi.Stubs</AssemblyName>
+    <RootNamespace>Eplan.EplApi</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

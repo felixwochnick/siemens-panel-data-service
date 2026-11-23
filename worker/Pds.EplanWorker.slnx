@@ -1,5 +1,12 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/EplanElectricP8Api/EplanElectricP8Api.csproj" />
+    <Project Path="src/Pds.EplanWorker.Core/Pds.EplanWorker.Core.csproj" />
+    <Project Path="src/Pds.EplanWorker/Pds.EplanWorker.csproj" />
+  </Folder>
+  <Folder Name="/stubs/">
+    <Project Path="stubs/Eplan.EplApi.Stubs/Eplan.EplApi.Stubs.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Pds.EplanWorker.Tests/Pds.EplanWorker.Tests.csproj" />
   </Folder>
 </Solution>
