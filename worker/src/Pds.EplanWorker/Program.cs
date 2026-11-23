@@ -70,7 +70,7 @@ namespace Pds.EplanWorker
                 logger.LogWarning("Gegen die Compile-Stubs der EPLAN-API gebaut: Analysen schlagen mit eplan_start_failed fehl.");
 #endif
 
-                // Nach dem Host freigeben: erst keine neuen Anfragen mehr, dann EPLAN beenden
+                // EPLAN beendet der Stopp des Hosts (WorkerService.StopAsync); Dispose danach nur als Rückfall
                 using (var eplan = new EplanHost(options.AllowDialogs, loggerFactory.CreateLogger("EPLAN")))
                 {
                     var worker = new WorkerController(new ProjectReader(eplan, logger), version, logger);
@@ -88,7 +88,7 @@ namespace Pds.EplanWorker
                     {
                         builder.Services.AddWindowsService(service => service.ServiceName = ProtocolConstants.ServiceName);
                     }
-                    builder.Services.AddHostedService(services => new WorkerService(options, worker, exit.Exit, stdin, stdout,
+                    builder.Services.AddHostedService(services => new WorkerService(options, eplan, worker, exit.Exit, stdin, stdout,
                         services.GetRequiredService<IHostApplicationLifetime>(), logger));
 
                     using (var host = builder.Build())
