@@ -14,6 +14,7 @@ use zeroize::Zeroizing;
 
 use crate::Paths;
 use crate::config::{Config, DbKind, Secrets, TlsMode};
+use crate::names::EPLAN_PIPE;
 use crate::secret::Secret;
 use crate::tls::TlsMaterial;
 
@@ -23,6 +24,11 @@ const APP_HOST: &str = "127.0.0.1";
 const NITRO_SHUTDOWN_TIMEOUT_MS: &str = "10000";
 /// Obergrenze für Anfragekörper (2 MB), zusätzlich zur Grenze der App in `02.request-guard.ts`.
 const MAX_REQUEST_BODY_BYTES: u64 = 2_000_000;
+/// Hochladen eines Projekts (`.zw1`): Die Grenze stellen Admins in der Web-App ein (Standard
+/// 500 MB) und die App prüft sie; Caddy hält nur Ausreißer ab.
+const UPLOAD_MAX_BODY_BYTES: u64 = 2 * 1024 * 1024 * 1024;
+/// Pfad des Uploads in der App (`POST /api/projects/upload`).
+const UPLOAD_PATH: &str = "/api/projects/upload";
 /// Schlagwort am Zertifikat, damit sich Caddys Protokoll darauf beziehen lässt.
 const CERTIFICATE_TAG: &str = "pds";
 /// Diese Adressen gehen nie über den Proxy: Caddy spricht mit der App, die App mit sich selbst.
@@ -133,7 +139,9 @@ fn secret_or_empty(secret: &Option<Secret>) -> Secret {
 }
 
 /// Umgebung der Node-App: die Laufzeitkonfiguration von Nuxt (`NUXT_*`) und Nitro.
-/// `NUXT_LOG_DIR` zeigt auf die Logs des Dienstes, damit die Web-Konsole sie anzeigen kann.
+/// `NUXT_LOG_DIR` zeigt auf die Logs des Dienstes, damit Admins sie in der Web-App sehen;
+/// `NUXT_PDS_DATA_DIR` ist der Datenordner (`uploads\`, `work\`), `NUXT_EPLAN_WORKER` die Pipe des
+/// Worker-Dienstes `pds-eplan`.
 pub fn app_env(
     config: &Config,
     secrets: &Secrets,
@@ -176,9 +184,16 @@ pub fn app_env(
         ),
         plain("NUXT_PUBLIC_MCP_ENABLED", config.mcp.enabled.to_string()),
         plain("NUXT_LOG_DIR", paths.logs_dir().to_string_lossy()),
+        plain("NUXT_PDS_DATA_DIR", paths.data_dir.to_string_lossy()),
+        plain("NUXT_EPLAN_WORKER", eplan_worker()),
     ];
     env.extend(proxy_variables(config));
     env
+}
+
+/// Transport zum Worker, wie ihn die App liest (`pipe:<Name>` oder `spawn:<Befehl>`).
+pub fn eplan_worker() -> String {
+    format!("pipe:{EPLAN_PIPE}")
 }
 
 /// Umgebung von Caddy: Ablage im Datenordner (nicht im Profil des Dienstkontos) und der
@@ -253,11 +268,19 @@ pub fn caddy_json(
     let mut http_server = json!({
         "listen": [format!(":{listen_port}")],
         "protocols": ["h1", "h2"],
-        "routes": [{
-            "match": [{"host": [config.public.host]}],
-            "handle": handlers(config),
-            "terminal": true,
-        }],
+        // Zuerst der Upload mit eigener Größengrenze, dann alles andere
+        "routes": [
+            {
+                "match": [{"host": [config.public.host], "path": [UPLOAD_PATH]}],
+                "handle": handlers(config, UPLOAD_MAX_BODY_BYTES),
+                "terminal": true,
+            },
+            {
+                "match": [{"host": [config.public.host]}],
+                "handle": handlers(config, MAX_REQUEST_BODY_BYTES),
+                "terminal": true,
+            },
+        ],
     });
     if off {
         http_server["automatic_https"] = json!({"disable": true});
@@ -300,9 +323,9 @@ pub fn caddy_json(
 }
 
 /// Handler-Kette: Größenlimit, Kompression, Sicherheits-Header, Weiterleitung an die App.
-fn handlers(config: &Config) -> Value {
+fn handlers(config: &Config, max_body_bytes: u64) -> Value {
     json!([
-        {"handler": "request_body", "max_size": MAX_REQUEST_BODY_BYTES},
+        {"handler": "request_body", "max_size": max_body_bytes},
         {
             "handler": "encode",
             "encodings": {"zstd": {}, "gzip": {}},

@@ -87,6 +87,16 @@ impl Paths {
         self.sqlite_dir().join("pds.db")
     }
 
+    /// Hochgeladene Projekte (`uploads\<projektId>\…`): die App schreibt, der Worker liest.
+    pub fn uploads_dir(&self) -> PathBuf {
+        self.data_dir.join("uploads")
+    }
+
+    /// Arbeitsordner der Analysen (`work\<analyseId>\…`): App und Worker ändern.
+    pub fn work_dir(&self) -> PathBuf {
+        self.data_dir.join("work")
+    }
+
     pub fn node_exe(&self) -> PathBuf {
         let name = if cfg!(windows) { "node.exe" } else { "node" };
         self.install_dir.join("node").join(name)
@@ -103,6 +113,12 @@ impl Paths {
 
     pub fn tools_script(&self) -> PathBuf {
         self.install_dir.join("tools").join("pds-tools.mjs")
+    }
+
+    /// Programm des EPLAN-Workers (.NET Framework, nur Windows); fehlt in einem MSI, das ohne
+    /// EPLAN-DLLs gebaut wurde.
+    pub fn eplan_exe(&self) -> PathBuf {
+        self.install_dir.join("eplan").join("pds-eplan.exe")
     }
 }
 
@@ -200,11 +216,11 @@ mod tests {
         assert_eq!(paths.caddy_dir(), Path::new("/data/caddy"));
         assert_eq!(paths.sqlite_dir(), Path::new("/data/data"));
         assert_eq!(paths.default_sqlite_file(), Path::new("/data/data/pds.db"));
+        assert_eq!(paths.uploads_dir(), Path::new("/data/uploads"));
+        assert_eq!(paths.work_dir(), Path::new("/data/work"));
+        assert_eq!(paths.eplan_exe(), Path::new("/inst/eplan/pds-eplan.exe"));
         assert_eq!(paths.app_entry(), Path::new("/inst/app/pds-entry.mjs"));
-        assert_eq!(
-            paths.tools_script(),
-            Path::new("/inst/tools/pds-tools.mjs")
-        );
+        assert_eq!(paths.tools_script(), Path::new("/inst/tools/pds-tools.mjs"));
     }
 
     #[cfg(not(windows))]

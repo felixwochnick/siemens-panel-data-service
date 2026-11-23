@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use pds_common::Secret;
 use pds_common::config::Config;
+use pds_common::eplan::EplanInstallOutcome;
 use pds_common::ops::{DbSetupOutcome, StatusReport};
 use pds_common::platform::{PortStatus, StoreCert};
 use pds_common::tls::CertInfo;
@@ -66,6 +67,29 @@ pub async fn service_control(
     action: ServiceAction,
 ) -> Result<StatusReport, UiError> {
     with(&backend, move |backend| backend.service_control(action)).await
+}
+
+/// Richtet den EPLAN-Worker ein oder ändert Konto und Passwort; das Passwort wird nirgends
+/// gespeichert und landet sofort in einem `Secret`.
+#[tauri::command]
+pub async fn eplan_install(
+    backend: Shared<'_>,
+    account: String,
+    password: String,
+) -> Result<EplanInstallOutcome, UiError> {
+    let password = Secret::new(password);
+    with(&backend, move |backend| {
+        backend.eplan_install(&account, password)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn eplan_control(
+    backend: Shared<'_>,
+    action: ServiceAction,
+) -> Result<StatusReport, UiError> {
+    with(&backend, move |backend| backend.eplan_control(action)).await
 }
 
 #[tauri::command]
@@ -186,7 +210,7 @@ pub async fn open_log_file(backend: Shared<'_>, path: PathBuf) -> Result<(), UiE
     with(&backend, move |backend| notepad(&backend.log_file(&path)?)).await
 }
 
-/// Öffnet die Web-Konsole (Adresse aus der gespeicherten Konfiguration) im Standardbrowser. Über
+/// Öffnet die Web-App (Adresse aus der gespeicherten Konfiguration) im Standardbrowser. Über
 /// `explorer.exe`: Es reicht die Adresse an die laufende Shell des angemeldeten Benutzers weiter,
 /// der Browser läuft so ohne die Adminrechte dieser Oberfläche und mit dem Profil (und der
 /// Entra-Anmeldung) des Benutzers.

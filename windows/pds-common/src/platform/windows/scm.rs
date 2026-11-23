@@ -1,4 +1,5 @@
-//! Dienststeuerung über den Service Control Manager (`windows-service`).
+//! Dienststeuerung über den Service Control Manager (`windows-service`): der Dienst `pds` und, über
+//! die Funktionen mit Namen, der Worker `pds-eplan`.
 //!
 //! Start und Stopp warten nie unbegrenzt: `stop` fragt den Zustand in kurzen Abständen ab und gibt
 //! nach `timeout` mit [`PlatformError::ServiceTimeout`] auf.
@@ -25,7 +26,25 @@ use crate::platform::{PlatformError, ScmInfo, ScmState};
 const POLL: Duration = Duration::from_millis(250);
 
 pub fn query() -> Result<ScmInfo, PlatformError> {
-    let service = match open(ServiceAccess::QUERY_STATUS | ServiceAccess::QUERY_CONFIG) {
+    query_service(SERVICE_NAME)
+}
+
+/// Fordert den Start von `pds` an und wartet nicht darauf.
+pub fn start() -> Result<(), PlatformError> {
+    start_service(SERVICE_NAME)
+}
+
+/// Stoppt `pds` und wartet höchstens `timeout`.
+pub fn stop(timeout: Duration) -> Result<(), PlatformError> {
+    stop_service(SERVICE_NAME, timeout)
+}
+
+/// Angaben des SCM zum Dienst `name`; nicht installiert ist kein Fehler.
+pub fn query_service(name: &str) -> Result<ScmInfo, PlatformError> {
+    let service = match open(
+        name,
+        ServiceAccess::QUERY_STATUS | ServiceAccess::QUERY_CONFIG,
+    ) {
         Ok(service) => service,
         Err(PlatformError::ServiceNotInstalled) => return Ok(ScmInfo::not_installed()),
         Err(error) => return Err(error),
@@ -48,8 +67,8 @@ pub fn query() -> Result<ScmInfo, PlatformError> {
 }
 
 /// Fordert den Start an und wartet nicht darauf. Läuft der Dienst schon, ist das kein Fehler.
-pub fn start() -> Result<(), PlatformError> {
-    let service = open(ServiceAccess::START | ServiceAccess::QUERY_STATUS)?;
+pub fn start_service(name: &str) -> Result<(), PlatformError> {
+    let service = open(name, ServiceAccess::START | ServiceAccess::QUERY_STATUS)?;
     match service.start::<&OsStr>(&[]) {
         Ok(()) => Ok(()),
         Err(error) if os_code(&error) == Some(ERROR_SERVICE_ALREADY_RUNNING.0) => Ok(()),
@@ -59,8 +78,8 @@ pub fn start() -> Result<(), PlatformError> {
 
 /// Stoppt den Dienst und wartet höchstens `timeout`, bis er steht. Läuft er nicht, ist das kein
 /// Fehler.
-pub fn stop(timeout: Duration) -> Result<(), PlatformError> {
-    let service = open(ServiceAccess::STOP | ServiceAccess::QUERY_STATUS)?;
+pub fn stop_service(name: &str, timeout: Duration) -> Result<(), PlatformError> {
+    let service = open(name, ServiceAccess::STOP | ServiceAccess::QUERY_STATUS)?;
     // Ohne `Instant + timeout`: Eine sehr große Wartezeit darf nicht überlaufen
     let started = Instant::now();
     let mut stop_sent = false;
@@ -106,12 +125,12 @@ pub fn restart(timeout: Duration) -> Result<(), PlatformError> {
     start()
 }
 
-fn open(access: ServiceAccess) -> Result<Service, PlatformError> {
+pub(super) fn open(name: &str, access: ServiceAccess) -> Result<Service, PlatformError> {
     // CONNECT reicht für jeden Benutzer; die eigentlichen Rechte prüft Windows am Dienst
     let manager = ServiceManager::local_computer(None::<&str>, ServiceManagerAccess::CONNECT)
         .map_err(|error| service_error("Dienststeuerung öffnen", error))?;
     manager
-        .open_service(SERVICE_NAME, access)
+        .open_service(name, access)
         .map_err(|error| service_error("Dienst öffnen", error))
 }
 
@@ -160,14 +179,14 @@ fn start_type(start_type: ServiceStartType) -> &'static str {
     }
 }
 
-fn os_code(error: &windows_service::Error) -> Option<u32> {
+pub(super) fn os_code(error: &windows_service::Error) -> Option<u32> {
     match error {
         windows_service::Error::Winapi(error) => error.raw_os_error().map(|code| code as u32),
         _ => None,
     }
 }
 
-fn service_error(context: &'static str, error: windows_service::Error) -> PlatformError {
+pub(super) fn service_error(context: &'static str, error: windows_service::Error) -> PlatformError {
     match os_code(&error) {
         Some(code) if code == ERROR_SERVICE_DOES_NOT_EXIST.0 => PlatformError::ServiceNotInstalled,
         Some(code) if code == ERROR_ACCESS_DENIED.0 => PlatformError::AccessDenied,

@@ -1,6 +1,6 @@
 //! Anbindung an das Betriebssystem: DPAPI, ACL des Datenordners und des SQLite-Ordners,
-//! Laufwerksart, Dienststeuerung (SCM), Ereignisprotokoll, Firewall, Portprüfung, Job Object und
-//! Zertifikatspeicher.
+//! Laufwerksart, Dienststeuerung (SCM), Einrichtung des Worker-Dienstes, Ereignisprotokoll,
+//! Firewall, Portprüfung, Job Object und Zertifikatspeicher.
 //!
 //! Die Windows-Teile stehen in `windows/`. Ohne Windows gibt es Ersatz mit derselben API, damit
 //! Aufrufer und Tests unter Linux übersetzbar bleiben: Die Portprüfung bindet testweise,
@@ -59,6 +59,10 @@ pub enum PlatformError {
     NotExportable,
     #[error("Dateisystemfehler: {0}")]
     Io(String),
+    /// `LogonUserW` hat die Anmeldung abgelehnt; `0` ist der Win32-Fehlercode (etwa 1326 für ein
+    /// falsches Passwort). Den Text dazu liefert [`crate::eplan::logon_failure_text`].
+    #[error("Anmeldung abgelehnt (Windows-Fehler {0})")]
+    LogonFailed(u32),
     /// Win32- oder COM-Fehler; `code` ist der HRESULT bzw. Win32-Fehlercode.
     #[error("{context} fehlgeschlagen: {message} (Code 0x{code:08X})")]
     Os {
@@ -83,9 +87,20 @@ impl PlatformError {
             Self::InvalidThumbprint => "certificate_thumbprint_invalid",
             Self::NotExportable => "certificate_not_exportable",
             Self::Io(_) => "platform_io_error",
+            Self::LogonFailed(_) => "logon_failed",
             Self::Os { .. } => "platform_os_error",
             Self::Tls(error) => error.code(),
         }
+    }
+}
+
+/// Win32-Fehlercode aus einem HRESULT der Form `0x8007xxxx`; andere HRESULTs bleiben, wie sie sind.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub(crate) fn win32_code(hresult: u32) -> u32 {
+    if hresult & 0xFFFF_0000 == 0x8007_0000 {
+        hresult & 0xFFFF
+    } else {
+        hresult
     }
 }
 
@@ -103,15 +118,129 @@ pub struct SecureOutcome {
     /// und SID, soweit auflösbar), bei Unterordnern und Dateien mit vorangestelltem Ort
     /// (`config.toml: …`). Gehört als Warnung ins Ereignisprotokoll.
     pub removed_aces: Vec<String>,
+    /// Konto des Worker-Dienstes `pds-eplan`, das seine Rechte auf `uploads\`, `work\` und `logs\`
+    /// bekommen hat; `None` ohne eingerichteten Worker.
+    pub worker: Option<String>,
+    /// Eingerichtet, aber mit Einschränkung (etwa: Konto des Workers nicht auflösbar, seine Ordner
+    /// blieben deshalb unverändert). Deutsch, für Admins und das Ereignisprotokoll.
+    pub warnings: Vec<String>,
 }
 
-/// Richtet Datenordner, `tls\`, `state\`, `logs\`, `caddy\` und `data\` (SQLite) ein. Idempotent.
+/// Ergebnis von [`propagate_data_rights`].
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PropagateOutcome {
+    /// Dateien und Ordner in `uploads\`, `work\` und `logs\`, deren Rechte neu gesetzt wurden.
+    pub updated: usize,
+    /// Übersprungen oder nicht änderbar; Deutsch, für Admins.
+    pub warnings: Vec<String>,
+}
+
+/// Rechte eines Kontos auf einem Ordner des Datenordners, vererbt an alles darin.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DirAccess {
+    /// Lesen und Ausführen (wie „Lesen, Ausführen“ im Explorer).
+    Read,
+    /// Ändern: Lesen, Schreiben, Löschen; ohne Rechte- und Besitzerwechsel.
+    Modify,
+}
+
+impl DirAccess {
+    /// Zugriffsmaske in SDDL.
+    pub(crate) fn mask(self) -> &'static str {
+        match self {
+            Self::Read => "0x1200a9",
+            Self::Modify => "0x1301bf",
+        }
+    }
+}
+
+/// Ein Unterordner des Datenordners mit den Rechten von Dienstkonto und Worker-Konto.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct DirRule {
+    pub dir: PathBuf,
+    pub service: DirAccess,
+    /// Rechte des Worker-Kontos; `None` = keine.
+    pub worker: Option<DirAccess>,
+}
+
+/// Die Unterordner des Datenordners in der Reihenfolge, in der sie eingerichtet werden. Das
+/// Dienstkonto liest `tls\` und ändert den Rest; das Worker-Konto bekommt nur, was
+/// [`crate::eplan::acl_plan`] vorsieht (`uploads\` lesen, `work\` und `logs\` ändern).
+pub(crate) fn data_dir_rules(paths: &Paths) -> Vec<DirRule> {
+    let worker = crate::eplan::acl_plan(paths);
+    let rule = |dir: PathBuf, service: DirAccess| {
+        let grant = worker
+            .iter()
+            .find(|grant| grant.dir == dir)
+            .map(|grant| grant.access);
+        DirRule {
+            dir,
+            service,
+            worker: grant,
+        }
+    };
+    vec![
+        rule(paths.tls_dir(), DirAccess::Read),
+        rule(paths.state_dir(), DirAccess::Modify),
+        rule(paths.logs_dir(), DirAccess::Modify),
+        rule(paths.caddy_dir(), DirAccess::Modify),
+        rule(paths.sqlite_dir(), DirAccess::Modify),
+        rule(paths.uploads_dir(), DirAccess::Modify),
+        rule(paths.work_dir(), DirAccess::Modify),
+    ]
+}
+
+/// Vollständige, geschützte Sicherheitsbeschreibung eines Ordners im Datenordner (Besitzer
+/// Administratoren): SYSTEM und Administratoren Vollzugriff, das Dienstkonto `service_sid` mit
+/// `service`, dazu ggf. das Worker-Konto; alles vererbbar (OICI). Die SIDs in `S-1-…`-Form.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub(crate) fn data_dir_sddl(
+    service_sid: &str,
+    service: DirAccess,
+    worker: Option<(&str, DirAccess)>,
+) -> String {
+    let mut sddl = format!(
+        "O:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;{};;;{service_sid})",
+        service.mask()
+    );
+    if let Some((sid, access)) = worker {
+        sddl.push_str(&format!("(A;OICI;{};;;{sid})", access.mask()));
+    }
+    sddl
+}
+
+/// Was eine Datei (`container = false`) bzw. ein Unterordner in einem Ordner mit
+/// [`data_dir_sddl`] erbt: dieselben Einträge als geerbte (`ID`), DACL ungeschützt, ohne Besitzer.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub(crate) fn inherited_dacl(
+    service_sid: &str,
+    service: DirAccess,
+    worker: Option<(&str, DirAccess)>,
+    container: bool,
+) -> String {
+    let flags = if container { "OICIID" } else { "ID" };
+    let mut sddl = format!(
+        "D:AI(A;{flags};FA;;;SY)(A;{flags};FA;;;BA)(A;{flags};{};;;{service_sid})",
+        service.mask()
+    );
+    if let Some((sid, access)) = worker {
+        sddl.push_str(&format!("(A;{flags};{};;;{sid})", access.mask()));
+    }
+    sddl
+}
+
+/// Richtet Datenordner, `tls\`, `state\`, `logs\`, `caddy\`, `data\` (SQLite), `uploads\` und `work\` ein.
+/// Idempotent.
 ///
 /// Unter Windows (braucht SYSTEM oder Administratorrechte):
 /// - Fehlt der Datenordner, entsteht er gleich mit seiner endgültigen Sicherheitsbeschreibung:
 ///   Besitzer Administratoren, geschützt, SYSTEM und Administratoren Vollzugriff, das Dienstkonto
 ///   Lesen. Die Unterordner sind ebenso geschützt (erben also nichts); in `state\`, `logs\`,
-///   `caddy\` und `data\` bekommt das Dienstkonto statt Lesen Ändern.
+///   `caddy\`, `data\`, `uploads\` und `work\` bekommt das Dienstkonto statt Lesen Ändern.
+/// - Ist der Worker-Dienst `pds-eplan` eingerichtet, bekommt sein Konto zusätzlich Lesen auf
+///   `uploads\` und Ändern auf `work\` und `logs\` (siehe [`crate::eplan::acl_plan`]). Lässt sich
+///   das Konto nicht auflösen (etwa ohne Domänencontroller), bleiben diese drei Ordner unverändert
+///   (Warnung in [`SecureOutcome::warnings`]), damit ein Update den Worker nicht aussperrt.
 /// - Ein vorhandener Datenordner wird übernommen, wenn er ein echter Ordner (kein Verweis) ist,
 ///   Administratoren oder SYSTEM gehört und eine geschützte DACL hat. Dann werden seine Rechte und
 ///   die der Unterordner erneut gesetzt, jeweils über das Handle, mit dem sie geprüft wurden, und
@@ -135,14 +264,9 @@ pub fn secure_data_dir(paths: &Paths) -> Result<SecureOutcome, PlatformError> {
     }
     #[cfg(not(windows))]
     {
-        for dir in [
-            paths.data_dir.clone(),
-            paths.tls_dir(),
-            paths.state_dir(),
-            paths.logs_dir(),
-            paths.caddy_dir(),
-            paths.sqlite_dir(),
-        ] {
+        let dirs = std::iter::once(paths.data_dir.clone())
+            .chain(data_dir_rules(paths).into_iter().map(|rule| rule.dir));
+        for dir in dirs {
             std::fs::create_dir_all(&dir)
                 .map_err(|error| PlatformError::Io(format!("{}: {error}", dir.display())))?;
         }
@@ -151,11 +275,32 @@ pub fn secure_data_dir(paths: &Paths) -> Result<SecureOutcome, PlatformError> {
 }
 
 /// Wie [`secure_data_dir`], aber mit der SID (Text, `S-1-…`) eines anderen Kontos anstelle des
-/// Dienstkontos. Nur für Tests, die ohne installierten Dienst laufen.
+/// Dienstkontos und ohne Worker. Nur für Tests, die ohne installierten Dienst laufen.
 #[cfg(windows)]
 #[doc(hidden)]
 pub fn secure_data_dir_for_sid(paths: &Paths, sid: &str) -> Result<SecureOutcome, PlatformError> {
-    self::windows::acl::secure_for_sid(paths, sid)
+    self::windows::acl::secure_for_sid(paths, sid, None)
+}
+
+/// Gibt die Rechte von `uploads\`, `work\` und `logs\` an alles weiter, was schon darin liegt:
+/// Jede Datei und jeder Unterordner bekommt genau die geerbten Einträge des Ordners (Dienstkonto und,
+/// falls eingerichtet, Worker-Konto). Nötig nach einem Wechsel des Worker-Kontos: Vererbung erreicht
+/// sonst nur neue Dateien, ein früher hochgeladenes Projekt bliebe für den Worker unlesbar, und das
+/// alte Konto behielte seine Rechte.
+///
+/// Unter Windows geht jeder Eintrag über ein eigenes Handle, das keinem Verweis folgt; Verweise,
+/// Dateien mit mehreren Namen und alles, was tatsächlich außerhalb des Ordners liegt, bleiben
+/// unberührt. Braucht Administratorrechte. Ohne Windows tut die Funktion nichts.
+pub fn propagate_data_rights(paths: &Paths) -> Result<PropagateOutcome, PlatformError> {
+    #[cfg(windows)]
+    {
+        self::windows::acl::propagate(paths)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = paths;
+        Ok(PropagateOutcome::default())
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -366,8 +511,15 @@ impl SddlFacts {
 /// Liest Besitzer und DACL aus SDDL; `account` ist die SDDL-Form der Dienst-SID (`S-1-5-80-…`).
 /// `None`, wenn sich die Beschreibung nicht eindeutig lesen lässt (gilt als fremd): ohne Besitzer
 /// oder DACL, Null-DACL, unbekannte Flags, kaputte Einträge.
-#[cfg_attr(not(windows), allow(dead_code))]
+#[cfg(test)]
 pub(crate) fn sddl_facts(sddl: &str, account: &str) -> Option<SddlFacts> {
+    sddl_facts_with(sddl, &[account])
+}
+
+/// Wie `sddl_facts` mit mehreren eigenen Konten (Dienstkonto und Worker-Konto): Deren
+/// „Erlauben“-Einträge zählen nicht als zusätzlich.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub(crate) fn sddl_facts_with(sddl: &str, accounts: &[&str]) -> Option<SddlFacts> {
     let parts = sddl_parts(sddl)?;
     let owner = parts
         .iter()
@@ -383,7 +535,7 @@ pub(crate) fn sddl_facts(sddl: &str, account: &str) -> Option<SddlFacts> {
     for ace in parse_aces(aces)? {
         let ours = ace.kind == "A"
             && !ace.object
-            && (ace.sid == "SY" || ace.sid == "BA" || ace.sid == account);
+            && (ace.sid == "SY" || ace.sid == "BA" || accounts.contains(&ace.sid));
         let entry = ExtraAce {
             kind: ace.kind.to_owned(),
             sid: ace.sid.to_owned(),
@@ -573,11 +725,14 @@ impl ScmInfo {
     }
 }
 
-/// Start, Stopp und Abfrage des Dienstes `pds`. Wartezeiten haben immer eine
-/// Obergrenze; ein hängender Dienst führt zu [`PlatformError::ServiceTimeout`].
+/// Start, Stopp und Abfrage des Dienstes `pds` (ohne Namen) bzw. eines benannten Dienstes
+/// (`*_service`, für den Worker `pds-eplan`). Wartezeiten haben immer eine Obergrenze; ein
+/// hängender Dienst führt zu [`PlatformError::ServiceTimeout`].
 pub mod scm {
     #[cfg(windows)]
-    pub use super::windows::scm::{query, restart, start, stop};
+    pub use super::windows::scm::{
+        query, query_service, restart, start, start_service, stop, stop_service,
+    };
 
     #[cfg(not(windows))]
     mod unsupported {
@@ -589,11 +744,23 @@ pub mod scm {
             Err(PlatformError::Unsupported)
         }
 
+        pub fn query_service(_name: &str) -> Result<ScmInfo, PlatformError> {
+            Err(PlatformError::Unsupported)
+        }
+
         pub fn start() -> Result<(), PlatformError> {
             Err(PlatformError::Unsupported)
         }
 
+        pub fn start_service(_name: &str) -> Result<(), PlatformError> {
+            Err(PlatformError::Unsupported)
+        }
+
         pub fn stop(_timeout: Duration) -> Result<(), PlatformError> {
+            Err(PlatformError::Unsupported)
+        }
+
+        pub fn stop_service(_name: &str, _timeout: Duration) -> Result<(), PlatformError> {
             Err(PlatformError::Unsupported)
         }
 
@@ -602,7 +769,64 @@ pub mod scm {
         }
     }
     #[cfg(not(windows))]
-    pub use unsupported::{query, restart, start, stop};
+    pub use unsupported::{
+        query, query_service, restart, start, start_service, stop, stop_service,
+    };
+}
+
+/// Einrichtung des Worker-Dienstes `pds-eplan` (siehe [`crate::eplan`]): Konto auflösen, Recht
+/// „Als Dienst anmelden“, Anmeldung prüfen, Dienst anlegen oder ändern, Sicherheitsbeschreibung des
+/// Dienstes, Entfernen. Ohne Windows [`PlatformError::Unsupported`].
+pub mod eplan {
+    #[cfg(windows)]
+    pub use super::windows::eplan::{
+        add_account_right, check_logon, configure_service, delete_service, lookup_account,
+        set_service_security,
+    };
+
+    #[cfg(not(windows))]
+    mod unsupported {
+        use super::super::PlatformError;
+        use crate::eplan::ServicePlan;
+        use crate::secret::Secret;
+
+        pub fn lookup_account(_name: &str) -> Result<Option<(String, bool)>, PlatformError> {
+            Err(PlatformError::Unsupported)
+        }
+
+        pub fn add_account_right(_sid: &str, _right: &str) -> Result<(), PlatformError> {
+            Err(PlatformError::Unsupported)
+        }
+
+        pub fn check_logon(
+            _user: &str,
+            _domain: Option<&str>,
+            _password: &Secret,
+        ) -> Result<(), PlatformError> {
+            Err(PlatformError::Unsupported)
+        }
+
+        pub fn configure_service(
+            _plan: &ServicePlan,
+            _account: &str,
+            _password: &Secret,
+        ) -> Result<bool, PlatformError> {
+            Err(PlatformError::Unsupported)
+        }
+
+        pub fn set_service_security(_name: &str, _sddl: &str) -> Result<(), PlatformError> {
+            Err(PlatformError::Unsupported)
+        }
+
+        pub fn delete_service(_name: &str) -> Result<bool, PlatformError> {
+            Err(PlatformError::Unsupported)
+        }
+    }
+    #[cfg(not(windows))]
+    pub use unsupported::{
+        add_account_right, check_logon, configure_service, delete_service, lookup_account,
+        set_service_security,
+    };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -843,6 +1067,94 @@ pub mod cert_store {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn win32_code_from_hresult() {
+        assert_eq!(win32_code(0x8007_052E), 1326);
+        assert_eq!(win32_code(0x8000_4005), 0x8000_4005);
+        assert_eq!(win32_code(5), 5);
+    }
+
+    #[test]
+    fn data_dir_rules_give_the_worker_only_uploads_work_and_logs() {
+        let paths = Paths::new("/inst", "/daten");
+        let rules = data_dir_rules(&paths);
+        let find = |dir: PathBuf| rules.iter().find(|rule| rule.dir == dir).unwrap().clone();
+
+        assert_eq!(find(paths.uploads_dir()).worker, Some(DirAccess::Read));
+        assert_eq!(find(paths.work_dir()).worker, Some(DirAccess::Modify));
+        assert_eq!(find(paths.logs_dir()).worker, Some(DirAccess::Modify));
+        for dir in [
+            paths.tls_dir(),
+            paths.state_dir(),
+            paths.caddy_dir(),
+            paths.sqlite_dir(),
+        ] {
+            assert_eq!(find(dir.clone()).worker, None, "{}", dir.display());
+        }
+        // Das Dienstkonto liest nur `tls\`, sonst Ändern (auch in `uploads\` und `work\`)
+        assert_eq!(find(paths.tls_dir()).service, DirAccess::Read);
+        assert!(
+            rules
+                .iter()
+                .filter(|rule| rule.dir != paths.tls_dir())
+                .all(|rule| rule.service == DirAccess::Modify)
+        );
+        assert_eq!(rules.len(), 7);
+    }
+
+    #[test]
+    fn data_dir_sddl_with_and_without_worker() {
+        assert_eq!(
+            data_dir_sddl(SERVICE, DirAccess::Read, None),
+            format!("O:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1200a9;;;{SERVICE})")
+        );
+        let worker = "S-1-5-21-1-2-3-1104";
+        let sddl = data_dir_sddl(SERVICE, DirAccess::Modify, Some((worker, DirAccess::Read)));
+        assert_eq!(
+            sddl,
+            format!(
+                "O:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1301bf;;;{SERVICE})\
+                 (A;OICI;0x1200a9;;;{worker})"
+            )
+        );
+        // Gilt als eigener Ordner, und der Worker ist kein zusätzlicher Eintrag
+        let facts = sddl_facts_with(&sddl, &[SERVICE, worker]).unwrap();
+        assert!(facts.trusted());
+        assert!(facts.extra.is_empty());
+        // Ein früheres Worker-Konto dagegen schon
+        let facts = sddl_facts(&sddl, SERVICE).unwrap();
+        assert_eq!(facts.extra.len(), 1);
+        assert_eq!(facts.extra[0].sid, worker);
+    }
+
+    #[test]
+    fn inherited_dacl_marks_entries_as_inherited() {
+        let worker = "S-1-5-21-1-2-3-1104";
+        assert_eq!(
+            inherited_dacl(SERVICE, DirAccess::Modify, None, false),
+            format!("D:AI(A;ID;FA;;;SY)(A;ID;FA;;;BA)(A;ID;0x1301bf;;;{SERVICE})")
+        );
+        assert_eq!(
+            inherited_dacl(
+                SERVICE,
+                DirAccess::Modify,
+                Some((worker, DirAccess::Modify)),
+                true
+            ),
+            format!(
+                "D:AI(A;OICIID;FA;;;SY)(A;OICIID;FA;;;BA)(A;OICIID;0x1301bf;;;{SERVICE})\
+                 (A;OICIID;0x1301bf;;;{worker})"
+            )
+        );
+    }
+
+    #[test]
+    fn dir_access_masks_match_the_explorer_rights() {
+        // Gleiche Werte wie die DACL-Ergänzung für den SQLite-Ordner
+        assert_eq!(DirAccess::Modify.mask(), format!("0x{MODIFY_MASK:x}"));
+        assert_eq!(DirAccess::Read.mask(), "0x1200a9");
+    }
 
     #[test]
     fn event_ids() {
@@ -1105,11 +1417,9 @@ mod tests {
     #[test]
     fn prepare_sqlite_dir_without_windows_does_nothing() {
         if cfg!(not(windows)) {
-            let outcome = prepare_sqlite_dir(
-                &Paths::new("/inst", "/daten"),
-                Path::new(r"D:\PDS\pds.db"),
-            )
-            .unwrap();
+            let outcome =
+                prepare_sqlite_dir(&Paths::new("/inst", "/daten"), Path::new(r"D:\PDS\pds.db"))
+                    .unwrap();
             assert_eq!(outcome, SqliteDirOutcome::default());
         }
     }
@@ -1139,8 +1449,7 @@ mod tests {
         let aside = aside_path(&path, now, 0x0a1b).unwrap();
         assert_eq!(
             aside,
-            Path::new("daten")
-                .join("EPLAN Panel Data Service (unsicher 20270301-120000-0a1b)")
+            Path::new("daten").join("EPLAN Panel Data Service (unsicher 20270301-120000-0a1b)")
         );
         assert_eq!(aside_path(Path::new("/"), now, 1), None);
     }

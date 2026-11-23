@@ -20,6 +20,8 @@ pub fn run() {
             commands::save_draft,
             commands::get_status,
             commands::service_control,
+            commands::eplan_install,
+            commands::eplan_control,
             commands::tls_import_pfx,
             commands::tls_import_pem,
             commands::tls_import_store,

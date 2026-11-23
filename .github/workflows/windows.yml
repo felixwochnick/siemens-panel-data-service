@@ -2,6 +2,7 @@
 # Läuft nur bei Änderungen unter windows/ bzw. an diesem Workflow, bei Release-Tags v* (Tags ignorieren
 # den Pfadfilter) und von Hand: Das Repository ist privat und Windows-Minuten zählen doppelt.
 # Lint, Typprüfung und Tests des JavaScript-Arbeitsbereichs: ci.yml.
+# Das MSI hier enthält keinen EPLAN-Worker (kein EPLAN auf dem Runner, build-payload.ps1 -SkipEplanWorker).
 name: Windows
 
 on:
@@ -263,8 +264,10 @@ jobs:
           }
           if ($failed.Count -gt 0) { throw "Ungültige Caddy-Konfiguration: $($failed -join ', ')" }
 
+      # Der Runner hat kein EPLAN: Payload ohne EPLAN-Worker (eplan\ fehlt im MSI, das Skript warnt per
+      # Annotation). Ein MSI mit Worker entsteht nur auf einem Rechner mit EPLAN (ohne -SkipEplanWorker).
       - name: Payload zusammenstellen
-        run: ./windows/scripts/build-payload.ps1 -Configuration release
+        run: ./windows/scripts/build-payload.ps1 -Configuration release -SkipEplanWorker
 
       # Signierpfad einmal echt durchlaufen, auch ohne echtes Zertifikat: Wegwerf-Zertifikat erzeugen, als
       # PFX mit Zufallspasswort ausgeben, wieder aus dem Speicher nehmen und eine Kopie damit signieren.
@@ -326,13 +329,21 @@ jobs:
           }
           Write-Host "Signierpfad geprüft (Zeitstempel: $($signature.TimeStamperCertificate.Subject))"
 
-      # Ohne Secret WINDOWS_SIGN_PFX: Warnung UNSIGNIERT und weiter
+      # Ohne Secret WINDOWS_SIGN_PFX: Warnung UNSIGNIERT und weiter. Eigene EXEs und caddy.exe liegen oben
+      # in der Payload (node\node.exe ist schon signiert); dazu der EPLAN-Worker, falls die Payload ihn enthält
+      # (hier wegen -SkipEplanWorker nicht)
       - name: EXEs signieren
         env:
           WINDOWS_SIGN_PFX: ${{ secrets.WINDOWS_SIGN_PFX }}
           WINDOWS_SIGN_PASSWORD: ${{ secrets.WINDOWS_SIGN_PASSWORD }}
           WINDOWS_SIGN_TSA: ${{ vars.WINDOWS_SIGN_TSA }}
-        run: ./windows/scripts/sign.ps1 -Files @(Get-ChildItem -LiteralPath windows/.payload -Filter *.exe -File | ForEach-Object FullName)
+        run: |
+          $files = @(Get-ChildItem -LiteralPath windows/.payload -Filter *.exe -File | ForEach-Object FullName)
+          $worker = 'windows/.payload/eplan/pds-eplan.exe'
+          if (Test-Path -LiteralPath $worker -PathType Leaf) {
+            $files += (Resolve-Path -LiteralPath $worker).Path
+          }
+          ./windows/scripts/sign.ps1 -Files $files
 
       - name: MSI bauen (Version und Basisversion)
         run: |

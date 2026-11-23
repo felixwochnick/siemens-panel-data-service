@@ -323,11 +323,12 @@ fn has_plaintext_secret(incoming: &Config, protector: &dyn Protector) -> bool {
 // app-secret regenerate
 // ---------------------------------------------------------------------------------------------
 
-// Die Passwörter der Controller-Einstellungen sind mit einem Schlüssel aus dem App-Secret verschlüsselt
+// Das Netzlaufwerk-Passwort in den Einstellungen der App ist mit einem Schlüssel aus dem App-Secret
+// verschlüsselt
 const REGENERATE_WARNING: &str = "Achtung: Ein neues App-Secret macht alle Sitzungen und \
-                                  MCP-Verbindungen ungültig; alle müssen sich neu anmelden. Die \
-                                  Passwörter für EPLAN-API und Netzlaufwerk sind danach nicht mehr \
-                                  lesbar und müssen in der Web-Konsole neu eingegeben werden.";
+                                  MCP-Verbindungen ungültig; alle müssen sich neu anmelden. Das \
+                                  Netzlaufwerk-Passwort ist danach nicht mehr lesbar und muss in \
+                                  den Einstellungen der Web-App neu eingegeben werden.";
 
 pub fn regenerate_app_secret(paths: &Paths, yes: bool) -> CliResult {
     if !yes && !confirm()? {

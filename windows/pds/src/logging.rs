@@ -6,10 +6,10 @@ use std::io;
 use std::path::Path;
 use std::sync::Mutex;
 
-use pds_common::Paths;
 use file_rotate::compression::Compression;
 use file_rotate::suffix::AppendCount;
 use file_rotate::{ContentLimit, FileRotate};
+use pds_common::Paths;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::fmt;
 use tracing_subscriber::prelude::*;

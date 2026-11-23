@@ -188,14 +188,6 @@ watch(() => draft.value.db.kind, () => {
           <p class="text-sm text-(--ui-color-text-muted)">
             {{ t.pathFolder }}
           </p>
-          <UAlert
-            variant="subtle"
-            color="info"
-            icon="siemens:circle-information"
-            :title="t.legacyTitle"
-            :description="t.legacy"
-            data-testid="db-legacy-hint"
-          />
         </div>
 
         <div

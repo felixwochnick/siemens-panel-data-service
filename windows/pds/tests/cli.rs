@@ -952,7 +952,7 @@ fn help_lists_all_commands_in_german() {
     assert!(output.status.success());
     let text = stdout(&output);
     for command in [
-        "run", "status", "service", "config", "tls", "db", "oidc", "ports",
+        "run", "status", "service", "config", "tls", "db", "oidc", "ports", "eplan",
     ] {
         assert!(
             text.lines()
@@ -967,7 +967,7 @@ fn help_lists_all_commands_in_german() {
 #[test]
 fn subcommand_helps_name_all_options() {
     let env = Env::new();
-    let expectations: [(&[&str], &[&str]); 8] = [
+    let expectations: [(&[&str], &[&str]); 10] = [
         (
             &["tls", "import"],
             &["--pfx", "--password-stdin", "--pem", "--store"],
@@ -982,6 +982,8 @@ fn subcommand_helps_name_all_options() {
         (&["oidc", "test"], &["--check-client", "--json"]),
         (&["ports", "check"], &["--json"]),
         (&["service", "restart"], &["--wait", "--timeout"]),
+        (&["eplan", "install"], &["--user", "--password-stdin"]),
+        (&["eplan", "status"], &["--json"]),
     ];
     for (args, options) in expectations {
         let output = env.cmd().args(args).arg("--help").output().unwrap();
@@ -2370,4 +2372,138 @@ fn status_names_the_database() {
         "{}",
         stdout(&output)
     );
+}
+
+// ---------------------------------------------------------------------------------------------
+// EPLAN-Worker
+// ---------------------------------------------------------------------------------------------
+
+#[test]
+fn eplan_install_rejects_a_password_argument_without_echoing_it() {
+    let env = Env::new();
+
+    let output = env
+        .cmd()
+        .args([
+            "eplan",
+            "install",
+            "--user",
+            r"EXAMPLE\eplan",
+            "--password",
+            "Geheim-123",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    assert!(
+        stderr(&output).contains("nie als Argument"),
+        "{}",
+        stderr(&output)
+    );
+    assert!(!stderr(&output).contains("Geheim-123"));
+    assert!(!stdout(&output).contains("Geheim-123"));
+}
+
+#[test]
+fn eplan_install_checks_account_and_worker_before_asking_for_the_password() {
+    let env = Env::new();
+
+    // Ohne Domäne: Hinweis auf die richtige Schreibweise, keine Passwortabfrage
+    let output = env
+        .cmd()
+        .args(["eplan", "install", "--user", "eplan", "--password-stdin"])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    assert!(stderr(&output).contains(r".\eplan"), "{}", stderr(&output));
+
+    let output = env
+        .cmd()
+        .args([
+            "eplan",
+            "install",
+            "--user",
+            r"NT SERVICE\pds",
+            "--password-stdin",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    assert!(
+        stderr(&output).contains("eingebautes oder virtuelles Konto"),
+        "{}",
+        stderr(&output)
+    );
+
+    // Ein MSI ohne Worker (hier: kein eplan\pds-eplan.exe im Installationsordner)
+    let output = env
+        .cmd()
+        .args([
+            "eplan",
+            "install",
+            "--user",
+            r"EXAMPLE\eplan",
+            "--password-stdin",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    assert!(
+        stderr(&output).contains("fehlt in dieser Installation"),
+        "{}",
+        stderr(&output)
+    );
+}
+
+#[test]
+fn eplan_status_names_a_missing_worker() {
+    let env = Env::new();
+
+    let output = env.cmd().args(["eplan", "status"]).output().unwrap();
+    assert!(output.status.success(), "{output:?}");
+    assert!(
+        stdout(&output).contains("Worker:    fehlt in dieser Installation"),
+        "{}",
+        stdout(&output)
+    );
+
+    let output = env
+        .cmd()
+        .args(["eplan", "status", "--json"])
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["workerPresent"], false);
+    assert!(
+        json["executable"]
+            .as_str()
+            .unwrap()
+            .ends_with("pds-eplan.exe")
+    );
+
+    // `status` zeigt den Worker mit an
+    let output = env.cmd().arg("status").output().unwrap();
+    assert!(
+        stdout(&output).contains("EPLAN-Worker:      fehlt in dieser Installation"),
+        "{}",
+        stdout(&output)
+    );
+}
+
+#[cfg(not(windows))]
+#[test]
+fn eplan_control_without_windows_is_unsupported() {
+    let env = Env::new();
+
+    for command in ["start", "stop", "restart", "uninstall"] {
+        let output = env.cmd().args(["eplan", command]).output().unwrap();
+        assert_eq!(output.status.code(), Some(1), "{command}: {output:?}");
+        assert!(
+            stderr(&output).contains("nicht verfügbar"),
+            "{command}: {}",
+            stderr(&output)
+        );
+    }
 }

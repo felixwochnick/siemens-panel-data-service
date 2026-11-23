@@ -893,10 +893,19 @@ fn config_planner_renders_valid_config() {
     assert_eq!(env_value(app, "PORT"), Some("3123"));
     assert!(env_value(app, "NUXT_DATABASE_URL").is_some());
     assert!(env_value(app, "PATH").is_some(), "Basis-Umgebung");
-    // Die Web-Konsole zeigt die Logs des Dienstes
+    // Die Web-App zeigt Admins die Logs des Dienstes
     assert_eq!(
         env_value(app, "NUXT_LOG_DIR"),
         Some(paths.logs_dir().to_string_lossy().as_ref())
+    );
+    // Hochgeladene Projekte und Arbeitsordner im Datenordner, Worker über die Pipe
+    assert_eq!(
+        env_value(app, "NUXT_PDS_DATA_DIR"),
+        Some(paths.data_dir.to_string_lossy().as_ref())
+    );
+    assert_eq!(
+        env_value(app, "NUXT_EPLAN_WORKER"),
+        Some(r"pipe:\\.\pipe\pds-eplan")
     );
     // PowerShell und net.exe für das Netzlaufwerk brauchen mehr als die Basis von Caddy
     #[cfg(windows)]

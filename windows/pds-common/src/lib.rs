@@ -1,6 +1,7 @@
 //! Gemeinsame Bibliothek von Dienst, CLI und Konfigurations-UI des EPLAN Panel Data Services.
 
 pub mod config;
+pub mod eplan;
 pub mod health;
 pub mod names;
 pub mod ops;

@@ -1,4 +1,5 @@
-//! `status [--json]`: Dienst, Zustand, Health, Versionen, Zertifikat, letzter Fehler, Befunde.
+//! `status [--json]`: Dienst, Zustand, Health, EPLAN-Worker, Versionen, Zertifikat, letzter Fehler,
+//! Befunde.
 //!
 //! Exit-Code 0 auch bei `unconfigured`: Der Befehl berichtet, er prüft nicht.
 
@@ -13,6 +14,7 @@ use pds_common::status::{ChildStatus, ServiceState, Status};
 use time::{OffsetDateTime, UtcOffset};
 
 use super::config_cmd::finding_line;
+use super::eplan_cmd;
 use super::{CliError, CliResult, Exit};
 
 pub fn status(paths: &Paths, json: bool) -> CliResult {
@@ -77,6 +79,7 @@ pub fn render(report: &StatusReport, now: OffsetDateTime) -> String {
     }
     line("Health intern:", &probe_text(report.internal.as_ref()));
     line("Health öffentlich:", &probe_text(report.public.as_ref()));
+    line("EPLAN-Worker:", &eplan_cmd::summary(&report.eplan));
 
     match &report.status {
         Some(status) => {
@@ -157,7 +160,7 @@ fn versions(status: &Status) -> String {
     )
 }
 
-fn service_text(service: Option<&ScmInfo>) -> String {
+pub(super) fn service_text(service: Option<&ScmInfo>) -> String {
     let Some(service) = service else {
         return "nicht abfragbar (nur unter Windows mit Dienststeuerung)".to_owned();
     };
@@ -216,6 +219,7 @@ pub fn format_time(at: OffsetDateTime) -> String {
 
 #[cfg(test)]
 mod tests {
+    use pds_common::eplan::EplanStatus;
     use pds_common::status::ErrorInfo;
     use pds_common::validate::{Finding, Severity};
 
@@ -241,6 +245,16 @@ mod tests {
             app_url: "https://trainee.example.com".into(),
             database: r"SQLite: C:\ProgramData\EPLAN Panel Data Service\data\pds.db".into(),
             config_error: None,
+            eplan: EplanStatus {
+                service: Some(ScmInfo {
+                    state: ScmState::Running,
+                    start_type: "auto".into(),
+                    delayed: true,
+                    account: r"EXAMPLE\svc-eplan".into(),
+                }),
+                worker_present: true,
+                executable: r"C:\Program Files\EPLAN Panel Data Service\eplan\pds-eplan.exe".into(),
+            },
         }
     }
 
@@ -344,6 +358,12 @@ mod tests {
         assert!(text.contains("Health intern:     nicht geprüft"), "{text}");
         assert!(
             text.contains(
+                r"EPLAN-Worker:      läuft (Start: automatisch, verzögert), Konto EXAMPLE\svc-eplan"
+            ),
+            "{text}"
+        );
+        assert!(
+            text.contains(
                 r"Datenbank:         SQLite: C:\ProgramData\EPLAN Panel Data Service\data\pds.db"
             ),
             "{text}"
@@ -373,9 +393,7 @@ mod tests {
         report.app_url.clear();
         let denied = |file: &str| ReadIssue {
             access_denied: true,
-            message: format!(
-                r"C:\ProgramData\EPLAN Panel Data Service\{file}: Zugriff verweigert"
-            ),
+            message: format!(r"C:\ProgramData\EPLAN Panel Data Service\{file}: Zugriff verweigert"),
         };
         report.status_error = Some(denied(r"state\status.json"));
         report.config_error = Some(denied("config.toml"));

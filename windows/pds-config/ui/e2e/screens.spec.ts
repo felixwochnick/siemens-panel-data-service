@@ -17,6 +17,9 @@ const sections = [
   { id: 'database', heading: 'Datenbank', name: 'database', query: '' },
   { id: 'database', heading: 'Datenbank', name: 'database-sqlite', query: '?fresh=1' },
   { id: 'login', heading: 'Anmeldung', name: 'login', query: '' },
+  { id: 'eplan', heading: 'EPLAN-Worker', name: 'eplan', query: '' },
+  { id: 'eplan', heading: 'EPLAN-Worker', name: 'eplan-fresh', query: '?fresh=1' },
+  { id: 'eplan', heading: 'EPLAN-Worker', name: 'eplan-noworker', query: '?noworker=1' },
   { id: 'assistants', heading: 'KI-Assistenten', name: 'assistants', query: '' },
 ] as const
 
@@ -222,7 +225,6 @@ for (const scheme of schemes) {
       await expect(page.getByRole('button', { name: 'Einrichten …' })).toHaveCount(0)
       await expect(page.getByRole('button', { name: 'SQL-Skript exportieren …' })).toHaveCount(0)
       await expect(page.getByTestId('db-kind-change')).toHaveCount(0)
-      await expect(page.getByTestId('db-legacy-hint')).toContainText('wiring_files')
 
       await page.getByRole('button', { name: 'Verbindung testen' }).click()
       const result = page.getByTestId('tool-result')
@@ -256,11 +258,11 @@ for (const scheme of schemes) {
       await expect(field.locator('[data-severity="error"]')).toHaveCount(0)
       await expect(page.getByTestId('save')).toBeEnabled()
 
-      // Eigene Datei: im Beispiel eine Kopie der Datenbank der .NET-Version
+      // Eigene Datei
       await path.fill('D:\\PDS\\pds.db')
       await expect(field.locator('[data-code]')).toHaveCount(0)
       await page.getByRole('button', { name: 'Verbindung testen' }).click()
-      await expect(result).toContainText('Tabelle wiring_files der .NET-Version gefunden')
+      await expect(result).toContainText('D:\\PDS\\pds.db geöffnet.')
       expect(problems.problems).toEqual([])
     })
 
@@ -372,13 +374,13 @@ for (const scheme of schemes) {
       expect(problems.problems).toEqual([])
     })
 
-    test('Web-Konsole öffnen', async ({ page }) => {
+    test('Web-App öffnen', async ({ page }) => {
       const problems = watch(page)
       await page.setViewportSize(viewports[1])
       await open(page, 'status', 'Status')
       // Die gespeicherte Adresse, nicht die eines Entwurfs
       await expect(page.getByTestId('status-address')).toHaveText('https://pds.example.com')
-      await page.getByRole('button', { name: 'Web-Konsole öffnen' }).click()
+      await page.getByRole('button', { name: 'Web-App öffnen' }).click()
       await expect(page.getByText('Im Browser geöffnet: https://pds.example.com', { exact: true })).toBeVisible()
       await expectNoHorizontalScroll(page)
       await page.screenshot({ path: `${SCREENS}/web-console-900-${scheme}.png`, animations: 'disabled' })
@@ -417,6 +419,49 @@ for (const scheme of schemes) {
       await expect(page.getByTestId('ports')).toContainText('http.sys')
       await expectNoHorizontalScroll(page)
       await shoot(page, `tls-off-900-${scheme}`)
+      expect(problems.problems).toEqual([])
+    })
+
+    test('EPLAN-Worker einrichten und steuern', async ({ page }) => {
+      const problems = watch(page)
+      await page.setViewportSize(viewports[1])
+      await open(page, 'eplan', 'EPLAN-Worker', '?fresh=1')
+      await expect(page.getByTestId('eplan-state')).toHaveText('nicht eingerichtet')
+      await expect(page.getByRole('button', { name: 'Neu starten' })).toBeDisabled()
+      const account = page.getByTestId('eplan-account')
+      const password = page.getByTestId('eplan-password')
+      const install = page.getByTestId('eplan-install')
+      await expect(install).toHaveText('Einrichten')
+      await expect(install).toBeDisabled()
+
+      // Eingebautes Konto: Hinweis am Feld, Einrichten gesperrt
+      await account.fill('NT SERVICE\\pds')
+      await password.fill('geheim')
+      await account.blur()
+      await expect(page.getByText('Eingebaute und virtuelle Konten')).toBeVisible()
+      await expect(install).toBeDisabled()
+
+      // Falsches Passwort: abgelehnt, Passwortfeld geleert, nichts eingerichtet
+      await account.fill('EXAMPLE\\svc-eplan')
+      await password.fill('falsch')
+      await install.click()
+      const toasts = page.getByRole('region', { name: /Benachrichtigungen/ })
+      await expect(toasts.getByText('Benutzername oder Passwort ist falsch')).toBeVisible()
+      await expect(password).toHaveValue('')
+      await expect(page.getByTestId('eplan-state')).toHaveText('nicht eingerichtet')
+
+      await password.fill('richtig')
+      await install.click()
+      await expect(toasts.getByText('EPLAN-Worker läuft unter EXAMPLE\\svc-eplan')).toBeVisible()
+      await expect(page.getByTestId('eplan-state')).toHaveText('läuft (Start: automatisch, verzögert), Konto EXAMPLE\\svc-eplan')
+      await expect(install).toHaveText('Konto ändern')
+      await expectNoHorizontalScroll(page)
+      await shoot(page, `eplan-installed-900-${scheme}`)
+
+      // Stoppen mit Rückfrage
+      await page.getByRole('button', { name: 'Stoppen' }).click()
+      await page.getByRole('dialog').getByRole('button', { name: 'Stoppen' }).click()
+      await expect(page.getByTestId('eplan-state')).toContainText('gestoppt')
       expect(problems.problems).toEqual([])
     })
 

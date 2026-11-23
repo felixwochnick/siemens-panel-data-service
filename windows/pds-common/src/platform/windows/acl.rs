@@ -4,10 +4,13 @@
 //! - Datenordner: Besitzer Administratoren, DACL geschützt (nichts vom Elternordner geerbt). SYSTEM
 //!   und Administratoren haben Vollzugriff, das Dienstkonto Lesen und Ausführen; alles vererbt sich
 //!   nach unten (OICI), `config.toml` erbt das, der Dienst liest dort also nur.
-//! - `tls\`, `state\`, `logs\`, `caddy\` und `data\` (SQLite): ebenfalls geschützt, mit denselben
-//!   Einträgen; nur in `state\`, `logs\`, `caddy\` und `data\` bekommt das Dienstkonto Ändern.
-//!   Geschützt deshalb, damit kein Unterordner von einer Vererbung abhängt, die durch einen vom
-//!   Dienst beschreibbaren Baum läuft.
+//! - `tls\`, `state\`, `logs\`, `caddy\`, `data\` (SQLite), `uploads\` und `work\`: ebenfalls geschützt,
+//!   mit denselben Einträgen; außer in `tls\` bekommt das Dienstkonto Ändern. Geschützt deshalb,
+//!   damit kein Unterordner von einer Vererbung abhängt, die durch einen vom Dienst beschreibbaren
+//!   Baum läuft.
+//! - Ist der Worker-Dienst `pds-eplan` eingerichtet, bekommt sein Konto Lesen auf `uploads\` und
+//!   Ändern auf `work\` und `logs\` ([`crate::platform::data_dir_rules`]); [`propagate`] gibt das an
+//!   schon vorhandene Dateien weiter.
 //!
 //! Warum so streng: DPAPI mit `LOCAL_MACHINE` kann jeder lokale Benutzer öffnen, die ACL ist also
 //! der einzige Schutz der Secrets. `C:\ProgramData` erlaubt Benutzern, Ordner anzulegen. Einen
@@ -63,20 +66,23 @@ use windows::Win32::Storage::FileSystem::{
 use windows::core::{BOOL, HSTRING, PCWSTR, PWSTR};
 
 use super::drive::{final_path, resolve};
+use super::eplan::lookup_account;
+use super::scm::query_service;
 use super::{LocalMemory, os_error};
-use crate::names::SERVICE_ACCOUNT;
+use crate::eplan::{check_user_sid, lookup_name_of};
+use crate::names::{EPLAN_SERVICE_NAME, SERVICE_ACCOUNT};
 use crate::paths::Paths;
 use crate::platform::{
-    ExtraAce, PlatformError, SddlFacts, SecureOutcome, SqliteDirOutcome, aside_path,
-    dacl_with_modify, sddl_facts,
+    DirAccess, ExtraAce, PlatformError, PropagateOutcome, ScmState, SddlFacts, SecureOutcome,
+    SqliteDirOutcome, aside_path, dacl_with_modify, data_dir_rules, data_dir_sddl, inherited_dacl,
+    sddl_facts_with,
 };
 use crate::validate::sqlite_path_problem;
 
-/// Lesen und Ausführen (FILE_GENERIC_READ | FILE_GENERIC_EXECUTE), wie "Lesen, Ausführen" im Explorer.
-const READ_EXECUTE: &str = "0x1200a9";
-/// Ändern (Lesen, Schreiben, Ausführen, Löschen), wie "Ändern" im Explorer; ohne Rechte- und
-/// Besitzerwechsel.
-const MODIFY: &str = "0x1301bf";
+/// Tiefe, bis zu der [`propagate`] in Unterordner absteigt.
+const MAX_DEPTH: usize = 64;
+/// So viele Meldungen sammelt [`propagate`] höchstens.
+const MAX_WARNINGS: usize = 20;
 
 /// Nur Attribute und Sicherheitsbeschreibung lesen.
 const INSPECT: FILE_ACCESS_RIGHTS = FILE_ACCESS_RIGHTS(READ_CONTROL.0 | FILE_READ_ATTRIBUTES.0);
@@ -90,14 +96,80 @@ const SQLITE_CONTEXT: &str = "SQLite-Ordner vorbereiten";
 
 pub(crate) fn secure(paths: &Paths) -> Result<SecureOutcome, PlatformError> {
     let sid = service_sid()?;
-    secure_for_sid(paths, &sid)
+    let worker = worker();
+    let mut outcome = secure_with(paths, &sid, &worker)?;
+    match worker {
+        Worker::Known(name, _) => outcome.worker = Some(name),
+        Worker::Unknown(message) => outcome.warnings.push(format!(
+            "{message} – die Rechte von uploads\\, work\\ und logs\\ bleiben unverändert"
+        )),
+        Worker::None => {}
+    }
+    Ok(outcome)
 }
 
-/// Wie [`secure`], mit der SID (Text) des Kontos, das Lesen bzw. Ändern bekommt.
-pub(crate) fn secure_for_sid(paths: &Paths, sid: &str) -> Result<SecureOutcome, PlatformError> {
+/// Wie [`secure`], mit der SID (Text) des Kontos, das Lesen bzw. Ändern bekommt, und ggf. der SID
+/// des Worker-Kontos.
+pub(crate) fn secure_for_sid(
+    paths: &Paths,
+    sid: &str,
+    worker_sid: Option<&str>,
+) -> Result<SecureOutcome, PlatformError> {
+    let worker = worker_sid.map_or(Worker::None, |worker| {
+        Worker::Known(String::new(), worker.to_owned())
+    });
+    secure_with(paths, sid, &worker)
+}
+
+/// Konto des Worker-Dienstes für die Rechte im Datenordner.
+enum Worker {
+    /// Kein Worker eingerichtet, oder er läuft nicht unter einem Benutzerkonto: keine Einträge.
+    None,
+    /// Kontoname (wie der SCM ihn nennt) und SID.
+    Known(String, String),
+    /// Eingerichtet, aber nicht auflösbar (etwa ohne Domänencontroller): Seine Ordner bleiben, wie
+    /// sie sind, statt ihm die Rechte zu nehmen. Der Text sagt warum.
+    Unknown(String),
+}
+
+/// Fragt den SCM nach dem Konto von `pds-eplan` und löst es auf.
+fn worker() -> Worker {
+    let info = match query_service(EPLAN_SERVICE_NAME) {
+        Ok(info) => info,
+        Err(error) => {
+            return Worker::Unknown(format!(
+                "Dienst {EPLAN_SERVICE_NAME} nicht abfragbar: {error}"
+            ));
+        }
+    };
+    if info.state == ScmState::NotInstalled || info.account.is_empty() {
+        return Worker::None;
+    }
+    let computer = std::env::var("COMPUTERNAME").unwrap_or_default();
+    match lookup_account(&lookup_name_of(&info.account, &computer)) {
+        Ok(Some((sid, is_user))) if check_user_sid(&info.account, &sid, is_user).is_ok() => {
+            Worker::Known(info.account, sid)
+        }
+        // Etwa LocalSystem, von Hand eingetragen: Das braucht keine Einträge
+        Ok(Some(_)) => Worker::None,
+        Ok(None) => Worker::Unknown(format!(
+            "Konto {} des EPLAN-Workers nicht gefunden",
+            info.account
+        )),
+        Err(error) => Worker::Unknown(format!(
+            "Konto {} des EPLAN-Workers nicht auflösbar: {error}",
+            info.account
+        )),
+    }
+}
+
+fn secure_with(paths: &Paths, sid: &str, worker: &Worker) -> Result<SecureOutcome, PlatformError> {
     check_sid(sid)?;
+    if let Worker::Known(_, worker_sid) = worker {
+        check_sid(worker_sid)?;
+    }
     let mut outcome = SecureOutcome::default();
-    match secure_tree(paths, sid, &mut outcome) {
+    match secure_tree(paths, sid, worker, &mut outcome) {
         Ok(()) => Ok(outcome),
         Err(error) if outcome.moved_aside.is_empty() => Err(error),
         // Schon beiseite gelegt: Wohin, darf auch bei einem späteren Fehler nicht verloren gehen
@@ -113,20 +185,25 @@ fn check_sid(sid: &str) -> Result<(), PlatformError> {
     Ok(())
 }
 
-/// Vollständige, geschützte Beschreibung mit Ändern für das Konto (`state\`, `logs\`, `data\` …).
+/// Vollständige, geschützte Beschreibung mit Ändern für das Konto (eigener SQLite-Ordner).
 fn writable_descriptor(sid: &str) -> Result<Descriptor, PlatformError> {
-    Descriptor::protected(&format!(
-        "O:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;{MODIFY};;;{sid})"
-    ))
+    Descriptor::protected(&data_dir_sddl(sid, DirAccess::Modify, None))
 }
 
-fn secure_tree(paths: &Paths, sid: &str, outcome: &mut SecureOutcome) -> Result<(), PlatformError> {
+fn secure_tree(
+    paths: &Paths,
+    sid: &str,
+    worker: &Worker,
+    outcome: &mut SecureOutcome,
+) -> Result<(), PlatformError> {
     let account = sddl_account(sid)?;
+    let worker_sid = match worker {
+        Worker::Known(_, worker_sid) => Some(worker_sid.as_str()),
+        _ => None,
+    };
+    let worker_account = worker_sid.map(sddl_account).transpose()?;
     // Vollständige, geschützte Beschreibungen: So hängt kein Ordner von Vererbung ab
-    let readable = Descriptor::protected(&format!(
-        "O:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;{READ_EXECUTE};;;{sid})"
-    ))?;
-    let writable = writable_descriptor(sid)?;
+    let readable = Descriptor::protected(&data_dir_sddl(sid, DirAccess::Read, None))?;
 
     let trusted_root = match inspect_root(&paths.data_dir, &account)? {
         Root::Missing => {
@@ -144,17 +221,22 @@ fn secure_tree(paths: &Paths, sid: &str, outcome: &mut SecureOutcome) -> Result<
         }
     };
 
-    for (dir, descriptor) in [
-        (paths.tls_dir(), &readable),
-        (paths.state_dir(), &writable),
-        (paths.logs_dir(), &writable),
-        (paths.caddy_dir(), &writable),
-        (paths.sqlite_dir(), &writable),
-    ] {
+    for rule in data_dir_rules(paths) {
+        let dir = rule.dir;
+        let grant = worker_sid.zip(rule.worker);
+        let descriptor = &Descriptor::protected(&data_dir_sddl(sid, rule.service, grant))?;
+        // Die Einträge des aktuellen Worker-Kontos sind eigene, die eines früheren zusätzliche
+        let mut own = vec![account.as_str()];
+        if let (Some(_), Some(worker_account)) = (grant, worker_account.as_deref()) {
+            own.push(worker_account);
+        }
         match inspect(&dir) {
+            // Unbekanntes Worker-Konto: lieber unverändert lassen als ihm die Rechte nehmen
+            Entry::Directory(_)
+                if rule.worker.is_some() && matches!(worker, Worker::Unknown(_)) => {}
             // Geprüft und beschrieben über ein und dasselbe Handle, kein Pfad dazwischen
             Entry::Directory(file) => {
-                if let Some(facts) = handle_facts(&file, &account) {
+                if let Some(facts) = handle_facts_with(&file, &own) {
                     record_removed(outcome, dir.file_name(), &facts.extra);
                 }
                 set_security(&file, &dir, descriptor)?;
@@ -184,7 +266,8 @@ fn secure_tree(paths: &Paths, sid: &str, outcome: &mut SecureOutcome) -> Result<
         set_security(&file, &paths.data_dir, &readable)?;
         // Wie eine Datei, die gerade im Datenordner entstanden ist: nur geerbte Einträge
         let inherited = Descriptor::from_sddl(&format!(
-            "O:BAD:AI(A;ID;FA;;;SY)(A;ID;FA;;;BA)(A;ID;{READ_EXECUTE};;;{sid})"
+            "O:BA{}",
+            inherited_dacl(sid, DirAccess::Read, None, false)
         ))?;
         reset_root_files(&paths.data_dir, &account, &inherited, outcome)?;
     }
@@ -225,6 +308,139 @@ fn reset_root_files(
         set_file_security(&file, &path, inherited)?;
     }
     Ok(())
+}
+
+// ---------------------------------------------------------------------------------------------
+// Rechte an vorhandene Dateien weitergeben
+// ---------------------------------------------------------------------------------------------
+
+/// Siehe [`crate::platform::propagate_data_rights`].
+pub(crate) fn propagate(paths: &Paths) -> Result<PropagateOutcome, PlatformError> {
+    let sid = service_sid()?;
+    check_sid(&sid)?;
+    let mut outcome = PropagateOutcome::default();
+    let worker_sid = match worker() {
+        Worker::Unknown(message) => {
+            outcome.warnings.push(format!(
+                "{message} – die Rechte vorhandener Dateien bleiben unverändert"
+            ));
+            return Ok(outcome);
+        }
+        Worker::Known(_, worker_sid) => {
+            check_sid(&worker_sid)?;
+            Some(worker_sid)
+        }
+        Worker::None => None,
+    };
+    for rule in data_dir_rules(paths)
+        .into_iter()
+        .filter(|rule| rule.worker.is_some())
+    {
+        let grant = worker_sid.as_deref().zip(rule.worker);
+        let files = Descriptor::from_sddl(&inherited_dacl(&sid, rule.service, grant, false))?;
+        let dirs = Descriptor::from_sddl(&inherited_dacl(&sid, rule.service, grant, true))?;
+        let root = match open_entry(&rule.dir, INSPECT) {
+            Ok(root) if real_directory(&root) => root,
+            Ok(_) => {
+                warn(
+                    &mut outcome,
+                    format!("{}: kein echter Ordner", rule.dir.display()),
+                );
+                continue;
+            }
+            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
+            Err(error) => {
+                warn(&mut outcome, format!("{}: {error}", rule.dir.display()));
+                continue;
+            }
+        };
+        let real_root = real_dir_of(&root, &rule.dir)?;
+        reset_children(&rule.dir, &real_root, &files, &dirs, 0, &mut outcome);
+    }
+    Ok(outcome)
+}
+
+/// Setzt allen Einträgen unter `dir` die geerbten Rechte (`files` bzw. `dirs`). Jeder Eintrag wird
+/// über ein Handle geöffnet, das keinem Verweis folgt, und nur geändert, wenn er tatsächlich unter
+/// `real_root` liegt: Ein Verweis weiter oben im Pfad, den jemand zwischen Auflisten und Öffnen
+/// eingesetzt hat, führt so nirgendwohin. Verweise selbst und Dateien mit mehreren Namen bleiben.
+fn reset_children(
+    dir: &Path,
+    real_root: &str,
+    files: &Descriptor,
+    dirs: &Descriptor,
+    depth: usize,
+    outcome: &mut PropagateOutcome,
+) {
+    if depth >= MAX_DEPTH {
+        warn(outcome, format!("{}: zu tief verschachtelt", dir.display()));
+        return;
+    }
+    let entries = match fs::read_dir(dir) {
+        Ok(entries) => entries,
+        Err(error) => {
+            warn(outcome, format!("{}: {error}", dir.display()));
+            return;
+        }
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let handle = match open_entry(&path, GRANT) {
+            Ok(handle) => handle,
+            // Inzwischen verschwunden (etwa ein gelöschter Arbeitsordner)
+            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
+            Err(error) => {
+                warn(outcome, format!("{}: {error}", path.display()));
+                continue;
+            }
+        };
+        let inside = final_path(&handle).is_ok_and(|real| is_inside(&real, real_root));
+        if !inside {
+            warn(
+                outcome,
+                format!("{}: liegt außerhalb und bleibt unverändert", path.display()),
+            );
+            continue;
+        }
+        if real_directory(&handle) {
+            match set_dacl(&handle, &path, dirs) {
+                Ok(()) => outcome.updated += 1,
+                Err(error) => warn(outcome, error.to_string()),
+            }
+            reset_children(&path, real_root, files, dirs, depth + 1, outcome);
+        } else if single_file(&handle) {
+            match set_dacl(&handle, &path, files) {
+                Ok(()) => outcome.updated += 1,
+                Err(error) => warn(outcome, error.to_string()),
+            }
+        }
+    }
+}
+
+/// Liegt der Pfad `real` (aufgelöst) unterhalb von `root` (aufgelöst)?
+fn is_inside(real: &str, root: &str) -> bool {
+    let root = format!("{}\\", root.trim_end_matches('\\').to_lowercase());
+    real.to_lowercase().starts_with(&root)
+}
+
+fn warn(outcome: &mut PropagateOutcome, message: String) {
+    match outcome.warnings.len() {
+        count if count < MAX_WARNINGS => outcome.warnings.push(message),
+        MAX_WARNINGS => outcome
+            .warnings
+            .push("… weitere Meldungen ausgelassen".to_owned()),
+        _ => {}
+    }
+}
+
+/// Setzt die (ungeschützte) DACL genau des Objekts hinter dem Handle; Besitzer bleibt.
+fn set_dacl(file: &fs::File, path: &Path, descriptor: &Descriptor) -> Result<(), PlatformError> {
+    let info = OBJECT_SECURITY_INFORMATION(
+        DACL_SECURITY_INFORMATION.0 | UNPROTECTED_DACL_SECURITY_INFORMATION.0,
+    );
+    // SAFETY: Handle und Sicherheitsbeschreibung leben bis zum Ende des Aufrufs.
+    unsafe { SetKernelObjectSecurity(HANDLE(file.as_raw_handle()), info, descriptor.raw) }
+        .map_err(|error| path_failure("Zugriffsrechte setzen", path, &error))
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -654,7 +870,12 @@ fn single_file(file: &fs::File) -> bool {
 
 /// Besitzer und DACL des geöffneten Objekts, ausgewertet; `None`, wenn nicht lesbar.
 fn handle_facts(file: &fs::File, account: &str) -> Option<SddlFacts> {
-    handle_sddl(file).and_then(|sddl| sddl_facts(&sddl, account))
+    handle_facts_with(file, &[account])
+}
+
+/// Wie [`handle_facts`] mit mehreren eigenen Konten.
+fn handle_facts_with(file: &fs::File, accounts: &[&str]) -> Option<SddlFacts> {
+    handle_sddl(file).and_then(|sddl| sddl_facts_with(&sddl, accounts))
 }
 
 /// Besitzer und DACL des geöffneten Objekts als SDDL; `None`, wenn nicht lesbar (gilt als fremd).
@@ -826,13 +1047,13 @@ fn path_failure(context: &'static str, path: &Path, error: &windows::core::Error
 }
 
 /// Sicherheitsbeschreibung aus SDDL, mit `LocalAlloc` belegt und beim Drop freigegeben.
-struct Descriptor {
-    raw: PSECURITY_DESCRIPTOR,
+pub(super) struct Descriptor {
+    pub(super) raw: PSECURITY_DESCRIPTOR,
     _memory: LocalMemory,
 }
 
 impl Descriptor {
-    fn from_sddl(sddl: &str) -> Result<Self, PlatformError> {
+    pub(super) fn from_sddl(sddl: &str) -> Result<Self, PlatformError> {
         let mut raw = PSECURITY_DESCRIPTOR::default();
         // SAFETY: `raw` nimmt einen mit LocalAlloc belegten Zeiger auf, den LocalMemory freigibt.
         unsafe {
@@ -939,7 +1160,7 @@ fn service_sid() -> Result<String, PlatformError> {
 }
 
 /// SID als Text (`S-1-…`).
-fn sid_text(psid: PSID) -> Result<String, PlatformError> {
+pub(super) fn sid_text(psid: PSID) -> Result<String, PlatformError> {
     let mut text = PWSTR::null();
     // SAFETY: `psid` ist eine gültige SID; `text` wird mit LocalAlloc belegt.
     unsafe { ConvertSidToStringSidW(psid, &mut text) }

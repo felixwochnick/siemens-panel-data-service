@@ -7,10 +7,12 @@
 // Installation mit der Standard-Datenbank (SQLite im Datenordner, kein Datenbankpasswort: Wer auf SQL Server
 // wechselt, lässt es von der Einrichtung erzeugen), `?gpo=1` eine per GPO verwaltete Firewall (Speichern
 // meldet eine Warnung).
+// EPLAN-Worker: eingerichtet unter EXAMPLE\svc-eplan und läuft; bei `?fresh=1` noch nicht eingerichtet,
+// `?noworker=1` ein MSI ohne Worker. Das Passwort `falsch` lehnt die Anmeldeprüfung ab.
 // SQLite-Pfade: Laufwerke C: und D: gibt es, Z: ist ein verbundenes Netzlaufwerk, andere fehlen (Warnung).
-// Ein eigener Pfad gilt im Test als Kopie der Datenbank der .NET-Version (Tabelle wiring_files gefunden).
 import type { CertInfo } from '../bindings/CertInfo'
 import type { Config } from '../bindings/Config'
+import type { EplanStatus } from '../bindings/EplanStatus'
 import type { Finding } from '../bindings/Finding'
 import type { ScmInfo } from '../bindings/ScmInfo'
 import type { ServiceAction } from '../bindings/ServiceAction'
@@ -18,13 +20,16 @@ import type { ServiceState } from '../bindings/ServiceState'
 import type { StatusReport } from '../bindings/StatusReport'
 import type { ToolLine } from '../bindings/ToolLine'
 import type { ToolResult } from '../bindings/ToolResult'
+import { accountProblem } from '../eplan'
 import { appUrlOf, formatDate, issuerOf, redirectUriOf } from '../format'
+import { texts } from '../texts'
 import { defaultConfig } from './defaults'
 import type { Command, Commands, FileFilter } from './index'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const DATA_DIR = 'C:\\ProgramData\\EPLAN Panel Data Service'
 const LOGS_DIR = `${DATA_DIR}\\logs`
+const EPLAN_EXE = 'C:\\Program Files\\EPLAN Panel Data Service\\eplan\\pds-eplan.exe'
 // Wie `Paths::default_sqlite_file`
 const DEFAULT_DB_PATH = `${DATA_DIR}\\data\\pds.db`
 const LOCAL_DRIVES = ['C', 'D']
@@ -56,6 +61,10 @@ function fresh(): boolean {
 
 function gpo(): boolean {
   return new URLSearchParams(window.location.search).has('gpo')
+}
+
+function noWorker(): boolean {
+  return new URLSearchParams(window.location.search).has('noworker')
 }
 
 // Wie `ops::unreadable_finding`: Feld `config`, Meldung aus `ConfigError::Unreadable`
@@ -105,6 +114,18 @@ const mock = {
   service: { state: 'running', startType: 'auto', delayed: true, account: 'NT SERVICE\\pds' } as ScmInfo,
   state: 'running' as ServiceState,
   since: iso(-3 * 60 * 60 * 1000),
+  eplan: (fresh() || noWorker()
+    ? { state: 'not_installed', startType: '', delayed: false, account: '' }
+    : { state: 'running', startType: 'auto', delayed: true, account: 'EXAMPLE\\svc-eplan' }) as ScmInfo,
+}
+
+// Wie `eplan::status`
+function eplanStatus(): EplanStatus {
+  return { service: mock.eplan, workerPresent: !noWorker(), executable: EPLAN_EXE }
+}
+
+function fail(code: string, message: string): never {
+  throw Object.assign(new Error(message), { code })
 }
 
 function clone<T>(value: T): T {
@@ -302,6 +323,7 @@ function brokenReport(): StatusReport {
     appUrl: '',
     database: '',
     configError: null,
+    eplan: eplanStatus(),
   }
 }
 
@@ -335,6 +357,7 @@ function statusReport(): StatusReport {
     appUrl: appUrlOf(mock.config),
     database: databaseSummary(mock.config),
     configError: null,
+    eplan: eplanStatus(),
   }
   return report
 }
@@ -385,9 +408,6 @@ function sqliteTest(draft: Config): ToolResult {
     step('sqlite_version', 'SQLite 3.50.4.', 'ok', { version: '3.50.4' }),
     step('migrations', 'Migrationen ausgeführt: core 9, pds 6.', 'ok', { core: 9, pds: 6 }),
   ]
-  if (custom) {
-    steps.push(step('legacy', 'Tabelle wiring_files der .NET-Version gefunden (1 284 Einträge): Die Web-Konsole bietet an, sie zu übernehmen.', 'ok', { rows: 1284 }))
-  }
   return result(steps, `Die Datenbankdatei ${path} ist bereit.`)
 }
 
@@ -441,6 +461,38 @@ const handlers: Handlers = {
   async service_control({ action }) {
     await sleep(600)
     return control(action)
+  },
+  // Wie `logic::eplan_install`: erst das Konto, dann Programm, dann die Anmeldeprüfung
+  async eplan_install({ account, password }) {
+    await sleep(900)
+    const problem = accountProblem(account)
+    if (problem) {
+      const codes = { missing: 'eplan_account_missing', noDomain: 'eplan_account_invalid', builtin: 'eplan_account_builtin', managed: 'eplan_account_managed', invalid: 'eplan_account_invalid' } as const
+      fail(codes[problem], texts.eplan.accountProblems[problem])
+    }
+    if (noWorker()) fail('eplan_worker_missing', `Der EPLAN-Worker fehlt in dieser Installation (${EPLAN_EXE}).`)
+    if (!password) fail('eplan_password_missing', 'Das Passwort fehlt.')
+    const name = account.trim()
+    if (password === 'falsch') {
+      fail('eplan_logon_failed', `Die Anmeldung als „${name}“ ist fehlgeschlagen: Benutzername oder Passwort ist falsch. Am Dienst wurde nichts geändert.`)
+    }
+    const created = mock.eplan.state === 'not_installed'
+    mock.eplan = { state: 'running', startType: 'auto', delayed: true, account: name }
+    return {
+      created,
+      account: name,
+      started: true,
+      // Wie `rights_step`: Die Rechte des bisherigen Kontos fallen weg
+      warnings: created ? [] : ['Bisherige Rechte im Datenordner entfernt: work: EXAMPLE\\alt (S-1-5-21-1-2-3-1100)'],
+    }
+  },
+  async eplan_control({ action }) {
+    await sleep(500)
+    if (mock.eplan.state === 'not_installed') {
+      fail('eplan_not_installed', 'Der EPLAN-Worker ist nicht eingerichtet – zuerst `pds eplan install --user <konto>`.')
+    }
+    mock.eplan = { ...mock.eplan, state: action === 'stop' ? 'stopped' : 'running' }
+    return statusReport()
   },
   // Das Beispielzertifikat gilt für den Hostnamen des Entwurfs (leer: den gespeicherten)
   async tls_import_pfx({ host }) {

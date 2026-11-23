@@ -1,11 +1,18 @@
 //! `setup install` und `setup uninstall [--remove-data]`: Aufrufe des MSI (als SYSTEM).
 //!
+//! Den Worker-Dienst `pds-eplan` legt das MSI nicht an (sein Konto kennt erst `pds eplan install`),
+//! es stoppt ihn nur vor dem Ersetzen der Dateien. `setup install` startet ihn nach einem Update
+//! wieder und behält dabei die Ordnerrechte seines Kontos; `setup uninstall` (nur bei der
+//! Deinstallation, nicht beim Update) entfernt ihn.
+//!
 //! Ohne Windows nur Datenordner und App-Secret bzw. das Löschen der Daten.
 
 use std::fs;
 use std::io;
 
 use pds_common::config::ConfigError;
+#[cfg(windows)]
+use pds_common::eplan::{self, SystemHost};
 use pds_common::names::product_version;
 use pds_common::ops::{self, OpsError};
 use pds_common::platform::{self, EventLevel, PlatformError, SecureOutcome, eventlog};
@@ -56,12 +63,28 @@ fn install_steps(paths: &Paths, secured: &SecureOutcome) -> CliResult {
     if let Some(message) = removed_aces_message(&secured.removed_aces) {
         warn(&message);
     }
+    for message in &secured.warnings {
+        warn(message);
+    }
+    if let Some(account) = &secured.worker {
+        tracing::info!("EPLAN-Worker ({account}) behält seine Rechte im Datenordner");
+    }
     #[cfg(windows)]
     {
         let exe = std::env::current_exe()
             .map_err(|error| CliError::new(format!("Pfad der EXE unbekannt: {error}")))?;
         eventlog::register_source(&exe)?;
         tracing::info!("Ereignisquelle registriert");
+        // Das MSI hat den Worker vor dem Ersetzen der Dateien gestoppt; er braucht weder App-Secret
+        // noch Firewall, also gleich wieder starten
+        match eplan::start_after_update(&SystemHost) {
+            Ok(true) => tracing::info!("EPLAN-Worker gestartet"),
+            Ok(false) => tracing::info!("EPLAN-Worker nicht eingerichtet oder deaktiviert"),
+            Err(error) => warn(&format!(
+                "EPLAN-Worker ließ sich nicht starten: {error} – Zustand mit `pds eplan status` \
+                 prüfen"
+            )),
+        }
     }
 
     // Eine von Hand kaputt gemachte Konfiguration darf ein Update nicht scheitern lassen: Sie
@@ -130,14 +153,22 @@ fn warn(message: &str) {
     }
 }
 
-/// Entfernt Firewall-Regel und Ereignisquelle, mit `remove_data` auch den Datenordner. Versucht
-/// jeden Schritt und meldet alle Fehler gesammelt (Exit 1). Kein Log in den Datenordner: Eine offene
-/// Logdatei verhinderte unter Windows das Löschen.
+/// Entfernt EPLAN-Worker, Firewall-Regel und Ereignisquelle, mit `remove_data` auch den
+/// Datenordner. Versucht jeden Schritt und meldet alle Fehler gesammelt (Exit 1). Kein Log in den
+/// Datenordner: Eine offene Logdatei verhinderte unter Windows das Löschen.
 pub fn uninstall(paths: &Paths, remove_data: bool) -> CliResult {
     let mut failures: Vec<String> = Vec::new();
 
     #[cfg(windows)]
     {
+        // Zuerst: Der Worker hält Dateien im Installationsordner offen. Nur stoppen und entfernen;
+        // die Rechte im Datenordner neu zu setzen ginge nicht mehr, das MSI hat `pds` samt Konto
+        // schon entfernt
+        match eplan::remove(&SystemHost) {
+            Ok(true) => println!("EPLAN-Worker (pds-eplan) entfernt."),
+            Ok(false) => {}
+            Err(error) => failures.push(format!("EPLAN-Worker nicht entfernt: {error}")),
+        }
         match platform::firewall::remove_rule() {
             Ok(()) => println!("Firewall-Regel entfernt."),
             Err(error) => failures.push(format!("Firewall-Regel nicht entfernt: {error}")),

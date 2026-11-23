@@ -75,6 +75,11 @@ function createAppState() {
     now.value = Date.now()
   }
 
+  async function eplanControl(action: ServiceAction) {
+    status.value = await api.eplanControl(action)
+    now.value = Date.now()
+  }
+
   async function save() {
     if (!canSave.value) return
     saving.value = true
@@ -116,6 +121,7 @@ function createAppState() {
     refreshStatus,
     startPolling,
     serviceControl,
+    eplanControl,
     save,
   }
 }

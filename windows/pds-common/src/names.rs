@@ -9,6 +9,15 @@ pub const EVENT_SOURCE: &str = "pds";
 pub const FIREWALL_RULE_NAME: &str = "EPLAN Panel Data Service (HTTP/HTTPS)";
 pub const PRODUCT_DIR_NAME: &str = "EPLAN Panel Data Service";
 
+/// Zweiter Dienst: der EPLAN-Worker unter einem lizenzierten Benutzerkonto (`pds eplan install`).
+pub const EPLAN_SERVICE_NAME: &str = "pds-eplan";
+pub const EPLAN_SERVICE_DISPLAY_NAME: &str = "EPLAN Panel Data Service – EPLAN-Worker";
+pub const EPLAN_SERVICE_DESCRIPTION: &str = "Öffnet EPLAN-Projekte für den EPLAN Panel Data Service \
+     und liefert deren Rohdaten über die Named Pipe \\\\.\\pipe\\pds-eplan.";
+/// Named Pipe des Workers; die ACL setzt der Worker selbst (`NT SERVICE\pds`, Administratoren, eigenes
+/// Konto).
+pub const EPLAN_PIPE: &str = r"\\.\pipe\pds-eplan";
+
 /// Produktversion: vom Build vorgegeben (`PDS_VERSION`), sonst die Crate-Version.
 pub fn product_version() -> &'static str {
     match option_env!("PDS_VERSION") {
@@ -100,5 +109,11 @@ mod tests {
     #[test]
     fn service_account_is_virtual_account_of_service() {
         assert_eq!(SERVICE_ACCOUNT, format!("NT SERVICE\\{SERVICE_NAME}"));
+    }
+
+    #[test]
+    fn eplan_pipe_and_description_name_the_worker() {
+        assert_eq!(EPLAN_PIPE, format!(r"\\.\pipe\{EPLAN_SERVICE_NAME}"));
+        assert!(EPLAN_SERVICE_DESCRIPTION.contains(EPLAN_PIPE));
     }
 }

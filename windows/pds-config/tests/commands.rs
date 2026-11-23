@@ -488,6 +488,69 @@ fn service_control_without_windows_is_unsupported() {
 }
 
 #[test]
+fn eplan_install_checks_the_account_before_anything_else() {
+    let (_dir, backend) = prepared();
+
+    for (account, code) in [
+        ("", "eplan_account_missing"),
+        ("eplan", "eplan_account_invalid"),
+        (r"NT SERVICE\pds", "eplan_account_builtin"),
+        ("LocalSystem", "eplan_account_builtin"),
+        (r"EXAMPLE\gmsa$", "eplan_account_managed"),
+    ] {
+        let error = backend
+            .eplan_install(account, Secret::new("Pässwort 1!"))
+            .unwrap_err();
+        assert_eq!(error.code, code, "{account}");
+        assert!(!error.message.contains("Pässwort"), "{}", error.message);
+    }
+}
+
+#[test]
+fn eplan_install_needs_the_worker_in_the_installation() {
+    let (_dir, backend) = prepared();
+
+    let error = backend
+        .eplan_install(r"EXAMPLE\eplan", Secret::new("Pässwort 1!"))
+        .unwrap_err();
+
+    assert_eq!(error.code, "eplan_worker_missing");
+}
+
+#[cfg(not(windows))]
+#[test]
+fn eplan_install_and_control_without_windows_are_unsupported() {
+    let (_dir, backend) = prepared();
+    let exe = backend.paths.eplan_exe();
+    fs::create_dir_all(exe.parent().unwrap()).unwrap();
+    fs::write(&exe, b"MZ").unwrap();
+
+    let error = backend
+        .eplan_install(r"EXAMPLE\eplan", Secret::new("Pässwort 1!"))
+        .unwrap_err();
+    assert_eq!(error.code, "platform_unsupported");
+
+    let error = backend.eplan_control(ServiceAction::Restart).unwrap_err();
+    assert_eq!(error.code, "platform_unsupported");
+}
+
+#[test]
+fn get_status_reports_the_worker() {
+    let (_dir, backend) = prepared();
+
+    let report = backend.get_status();
+
+    assert!(!report.eplan.worker_present);
+    assert_eq!(
+        report.eplan.executable,
+        backend.paths.eplan_exe().display().to_string()
+    );
+    if cfg!(not(windows)) {
+        assert_eq!(report.eplan.service, None);
+    }
+}
+
+#[test]
 fn service_action_from_ui() {
     let action: ServiceAction = serde_json::from_str("\"restart\"").unwrap();
     assert_eq!(action, ServiceAction::Restart);

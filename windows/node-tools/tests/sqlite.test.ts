@@ -110,8 +110,6 @@ describe('db-test mit SQLite', () => {
     const core = Object.keys(coreMigrations.sqlite).length
     expect(step(run, 'migrations')).toMatchObject({ ok: true, details: { core, pds: 1 } })
     expect(step(run, 'migrations')?.message).toBe(`Migrationen ausgeführt: core ${core}, pds 1.`)
-    // Keine Tabelle der .NET-Version
-    expect(step(run, 'legacy')).toBeUndefined()
   })
 
   it('writable_check_leaves_no_trace', async () => {
@@ -130,19 +128,6 @@ describe('db-test mit SQLite', () => {
 
     expect((await runTool('db-test', { NUXT_DATABASE_URL: `sqlite:${path}` })).result.ok).toBe(true)
     expect(schemaVersion()).toEqual(before)
-  })
-
-  it('finds_the_table_of_the_dotnet_version', async () => {
-    const path = join(tempDir(), 'pds.db')
-    seed(path, [
-      'CREATE TABLE wiring_files (order_name text, file_name text, file_created text, file_updated text, file_uploaded text)',
-      'INSERT INTO wiring_files (order_name, file_name) VALUES (\'A1\', \'a.zw1\'), (\'A2\', \'b.zw1\')',
-    ])
-
-    const run = await runTool('db-test', { NUXT_DATABASE_URL: `sqlite:${path}` })
-    expect(run.result.ok).toBe(true)
-    expect(step(run, 'legacy')).toMatchObject({ ok: true, details: { rows: 2 } })
-    expect(step(run, 'legacy')?.message).toContain('.NET-Version')
   })
 
   it.skipIf(noModeBits)('read_only_file', async () => {

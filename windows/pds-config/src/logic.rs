@@ -11,6 +11,9 @@ use std::path::{Path, PathBuf};
 
 use pds_common::config::masking::{masked, merge_masked};
 use pds_common::config::{self, Config, ConfigError, DbKind, Secrets, TlsMode};
+use pds_common::eplan::{
+    self, Account, Control, EplanError, EplanInstallOutcome, Host, SystemHost,
+};
 use pds_common::ops::{self, ApplyOutcome, DbSetupOutcome, OpsError, StatusReport, TlsSource};
 use pds_common::platform::cert_store::{self, normalize_thumbprint};
 use pds_common::platform::{PlatformError, PortStatus, StoreCert, ports, scm};
@@ -111,7 +114,14 @@ macro_rules! ui_error_from {
     )*};
 }
 
-ui_error_from!(OpsError, ConfigError, PlatformError, TlsError, ToolError);
+ui_error_from!(
+    OpsError,
+    ConfigError,
+    PlatformError,
+    TlsError,
+    ToolError,
+    EplanError
+);
 
 /// `service_control(action)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -144,7 +154,7 @@ pub fn addresses(config: &Config) -> Addresses {
     }
 }
 
-/// Adresse für „Web-Konsole öffnen“ aus einer Konfiguration. Sie geht als Argument an
+/// Adresse für „Web-App öffnen“ aus einer Konfiguration. Sie geht als Argument an
 /// `explorer.exe`, deshalb nur `http(s)://` mit Host (Buchstaben, Ziffern, `.`, `-`, IPv6 in `[]`)
 /// und Port: `explorer.exe` deutet etwa Kommas als Trenner, und eine Datei oder ein Programm darf
 /// so nie geöffnet werden.
@@ -294,6 +304,40 @@ impl Backend {
             ServiceAction::Stop => scm::stop(ops::STOP_TIMEOUT),
             ServiceAction::Restart => scm::restart(ops::STOP_TIMEOUT),
         }?;
+        Ok(self.get_status())
+    }
+
+    // -- EPLAN-Worker --------------------------------------------------------------------------
+
+    /// Richtet den Worker-Dienst unter `account` ein oder ändert Konto und Passwort (siehe
+    /// [`eplan::install`]). Das Passwort wird nirgends gespeichert.
+    pub fn eplan_install(
+        &self,
+        account: &str,
+        password: Secret,
+    ) -> Result<EplanInstallOutcome, UiError> {
+        self.eplan_install_with(&SystemHost, account, password)
+    }
+
+    /// Wie [`Self::eplan_install`] mit eigenem Rechner (Tests).
+    pub fn eplan_install_with(
+        &self,
+        host: &dyn Host,
+        account: &str,
+        password: Secret,
+    ) -> Result<EplanInstallOutcome, UiError> {
+        let account = Account::parse(account)?;
+        Ok(eplan::install(host, &self.paths, &account, &password)?)
+    }
+
+    /// Startet, stoppt oder startet den Worker neu und liefert danach den Status.
+    pub fn eplan_control(&self, action: ServiceAction) -> Result<StatusReport, UiError> {
+        let action = match action {
+            ServiceAction::Start => Control::Start,
+            ServiceAction::Stop => Control::Stop,
+            ServiceAction::Restart => Control::Restart,
+        };
+        eplan::control(&SystemHost, action)?;
         Ok(self.get_status())
     }
 
@@ -492,7 +536,7 @@ impl Backend {
         Ok(ops::regenerate_app_secret(&self.paths, &*self.protector)?)
     }
 
-    /// Adresse der Web-Konsole aus der gespeicherten Konfiguration, nie aus der Oberfläche: Ein
+    /// Adresse der Web-App aus der gespeicherten Konfiguration, nie aus der Oberfläche: Ein
     /// ungespeicherter Entwurf soll nicht schon im Browser landen.
     pub fn web_console_url(&self) -> Result<String, UiError> {
         web_console_url(&config::load(&self.paths.config_file())?)

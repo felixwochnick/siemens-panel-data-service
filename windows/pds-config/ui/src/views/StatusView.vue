@@ -64,6 +64,7 @@ const rows = computed(() => {
   out.push(
     { label: t.labels.healthInternal, value: t.probe(value.internal), testid: 'health-internal' },
     { label: t.labels.healthPublic, value: t.probe(value.public), testid: 'health-public' },
+    { label: t.labels.eplan, value: t.eplan(value.eplan), testid: 'eplan' },
   )
   const s = value.status
   if (s) {

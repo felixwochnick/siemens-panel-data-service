@@ -19,10 +19,11 @@ import { texts } from './texts'
 import AddressTlsView from './views/AddressTlsView.vue'
 import AssistantsView from './views/AssistantsView.vue'
 import DatabaseView from './views/DatabaseView.vue'
+import EplanView from './views/EplanView.vue'
 import LoginView from './views/LoginView.vue'
 import StatusView from './views/StatusView.vue'
 
-type SectionId = 'status' | 'address' | 'database' | 'login' | 'assistants'
+type SectionId = 'status' | 'address' | 'database' | 'login' | 'eplan' | 'assistants'
 
 interface Section {
   id: SectionId
@@ -38,6 +39,8 @@ const sections: Section[] = [
   { id: 'address', label: texts.sections.addressTls, icon: 'siemens:lock', view: AddressTlsView, fields: ['public', 'listen', 'internal', 'tls'] },
   { id: 'database', label: texts.sections.database, icon: 'siemens:capacity', view: DatabaseView, fields: ['db'] },
   { id: 'login', label: texts.sections.login, icon: 'siemens:login', view: LoginView, fields: ['oidc', 'proxy', 'app'] },
+  // Nicht Teil der Konfigurationsdatei: Einrichten wirkt sofort, ohne Speichern
+  { id: 'eplan', label: texts.sections.eplan, icon: 'siemens:configure', view: EplanView, fields: [] },
   { id: 'assistants', label: texts.sections.assistants, icon: 'siemens:ai', view: AssistantsView, fields: ['mcp'] },
 ]
 

@@ -5,6 +5,12 @@
 
   Der Datenordner %ProgramData%\EPLAN Panel Data Service gehört nicht dem MSI: `setup install` legt ihn an und
   sichert ihn ab, nur `setup uninstall` mit REMOVE_DATA=1 entfernt ihn. Das MSI legt dort nichts ab.
+
+  EPLAN-Worker (eplan\pds-eplan.exe, Dienst pds-eplan): Das MSI liefert nur die Dateien aus und stoppt den
+  Dienst vor dem Ersetzen bzw. Entfernen. Anlegen, Konto und Passwort übernimmt `pds eplan install`;
+  `setup install` startet einen vorhandenen pds-eplan nach dem Update wieder, `setup uninstall` entfernt
+  ihn bei der echten Deinstallation (siehe ServiceControl EplanWorker und die Custom Actions unten).
+  Ein mit build-payload.ps1 -SkipEplanWorker gebautes MSI (CI) enthält kein eplan\.
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
@@ -37,7 +43,10 @@
       <ComponentGroupRef Id="PayloadFiles" />
     </Feature>
 
-    <!-- Die Dienst-EXE hat eine eigene Komponente, weil Dienst, Dienststeuerung und PATH an ihr hängen -->
+    <!--
+      Die Dienst-EXE hat eine eigene Komponente, weil Dienst, Dienststeuerung (auch die des EPLAN-Workers) und
+      PATH an ihr hängen
+    -->
     <DirectoryRef Id="INSTALLFOLDER">
       <Component Id="ServiceExe">
         <File Id="ServiceExe" Source="$(PayloadDir)\pds.exe" KeyPath="yes" />
@@ -76,6 +85,22 @@
                         Name="pds"
                         Start="install"
                         Wait="no" />
+
+        <!--
+          EPLAN-Worker: nur stoppen (mit Warten), damit eplan\ danach ersetzt bzw. entfernt werden kann. Hängt an
+          dieser immer installierten Komponente, nicht an den Dateien in eplan\ (die fehlen in CI-Builds).
+          Kein ServiceInstall: Das Konto steht erst nach `pds eplan install` fest. Ist pds-eplan nicht
+          eingerichtet, übergeht Windows Installer den Eintrag.
+          Bewusst KEIN Remove="uninstall": Beim Major Upgrade (MajorUpgrade, RemoveExistingProducts nach
+          InstallValidate) wird die alte Version vollständig deinstalliert; ihr Remove="uninstall" würde
+          pds-eplan samt Konto und Passwort bei jedem Update löschen. Entfernt wird der Dienst stattdessen von
+          `setup uninstall` (SetupUninstall/SetupUninstallData, nur bei echter Deinstallation, nicht beim
+          Upgrade); `setup install` startet einen vorhandenen pds-eplan nach dem Update wieder.
+        -->
+        <ServiceControl Id="EplanWorker"
+                        Name="pds-eplan"
+                        Stop="both"
+                        Wait="yes" />
 
         <!-- Damit `pds status` auch auf Server Core ohne Pfad funktioniert -->
         <Environment Id="PathInstallFolder"
@@ -121,7 +146,10 @@
       </Component>
     </StandardDirectory>
 
-    <!-- Alles Übrige der Payload: node\, app\, tools\, licenses\, caddy.exe -->
+    <!--
+      Alles Übrige der Payload: node\, app\, tools\, eplan\ (EPLAN-Worker, ohne EPLAN-DLLs; fehlt bei
+      -SkipEplanWorker), licenses\, caddy.exe
+    -->
     <ComponentGroup Id="PayloadFiles" Directory="INSTALLFOLDER">
       <Files Include="$(PayloadDir)\**">
         <Exclude Files="$(PayloadDir)\pds.exe" />
@@ -130,7 +158,8 @@
     </ComponentGroup>
 
     <!--
-      Einrichtung durch die EXE selbst (Datenordner, ACL, App-Secret, Ereignisquelle, Firewall-Regel).
+      Einrichtung durch die EXE selbst (Datenordner, ACL, App-Secret, Ereignisquelle, Firewall-Regel); startet
+      außerdem einen vorhandenen Dienst pds-eplan wieder, den StopServices für das Update angehalten hat.
       Pfad über [INSTALLFOLDER] statt [#ServiceExe]: Bei der Deinstallation ist [#…] bereits leer.
       WixQuietExec schreibt Befehlszeile und Ausgabe ins MSI-Log; beides enthält keine Secrets.
     -->
@@ -179,7 +208,11 @@
                   Impersonate="no"
                   Return="check" />
 
-    <!-- Deinstallation darf nicht an Firewall oder Ereignisprotokoll scheitern und zurückrollen -->
+    <!--
+      Deinstallation darf nicht an Firewall oder Ereignisprotokoll scheitern und zurückrollen. `setup uninstall`
+      entfernt auch den Dienst pds-eplan (das MSI selbst nicht, siehe ServiceControl EplanWorker); beim Upgrade
+      laufen beide Aktionen nicht, der eingerichtete Worker bleibt samt Konto erhalten.
+    -->
     <SetProperty Id="SetupUninstall"
                  Value='"[INSTALLFOLDER]pds.exe" setup uninstall'
                  Before="SetupUninstall"
@@ -237,7 +270,7 @@
       <Custom Action="ConfigureServiceRecovery"
               After="SetupInstall"
               Condition='NOT REMOVE~="ALL"' />
-      <!-- Nicht beim Upgrade: Dort entfernt die alte Version sich selbst, Regel und Daten bleiben -->
+      <!-- Nicht beim Upgrade: Dort entfernt die alte Version sich selbst, Regel, Daten und pds-eplan bleiben -->
       <Custom Action="SetupUninstall"
               Before="RemoveFiles"
               Condition='REMOVE~="ALL" AND NOT UPGRADINGPRODUCTCODE AND REMOVE_DATA&lt;&gt;"1"' />

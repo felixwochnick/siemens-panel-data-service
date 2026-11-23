@@ -37,7 +37,7 @@ ohne URL-Kodierung, z. B. `sqlite:C:\ProgramData\EPLAN Panel Data Service\data\p
 | Befehl | Umgebung | Schritte |
 | --- | --- | --- |
 | `db-test` (SQL Server) | `NUXT_DATABASE_URL=mssql://…` | `connect`, `server_version`, `db_owner`, `read_committed_snapshot`, `migrations` |
-| `db-test` (SQLite) | `NUXT_DATABASE_URL=sqlite:<pfad>` | `open`, `writable`, `sqlite_version`, `migrations`, `legacy` (nur wenn die Tabelle `wiring_files` der .NET-Version existiert) |
+| `db-test` (SQLite) | `NUXT_DATABASE_URL=sqlite:<pfad>` | `open`, `writable`, `sqlite_version`, `migrations` |
 | `db-setup` | `PDS_ADMIN_DATABASE_URL` (Admin an `master`), `PDS_DB_NAME`, `PDS_DB_USER`, `PDS_DB_PASSWORD` | `connect`, `database`, `read_committed_snapshot`, `login`, `db_owner`; mit `sqlite:` sofort `not_needed` |
 | `db-script` | `PDS_DB_NAME`, `PDS_DB_USER` | – (`result.details.script`) |
 | `db-backup` | `NUXT_DATABASE_URL=sqlite:<pfad>`, `PDS_BACKUP_FILE` (absoluter Pfad der neuen Datei) | `open`, `backup`, `verify`; mit `mssql://` sofort `not_supported` |
@@ -55,7 +55,7 @@ SQLite) und `not_supported` (`db-backup` mit SQL Server).
 `db-test` legt **nie** etwas an: Es läuft als Administrator, und ein Ordner oder eine Datei, die es anlegte, bekäme nur
 die geerbten (womöglich zu weiten) Rechte statt der strengen, die das Speichern der Konfiguration vergibt. Fehlt die
 Datei, meldet es eine neue Datenbank (der Dienst legt sie an), fehlt schon der Ordner, dass das Speichern ihn anlegt;
-beides ist ok, die Schritte `writable` und `legacy` entfallen dann. Eine vorhandene Datei öffnet es wie die App (WAL,
+beides ist ok, der Schritt `writable` entfällt dann. Eine vorhandene Datei öffnet es wie die App (WAL,
 `busy_timeout` 5 s, Fremdschlüssel; wie `openSqliteFile`, aber ohne den Ordner anzulegen).
 
 | Schritt | Ergebnis (`details`) |
@@ -64,7 +64,6 @@ beides ist ok, die Schritte `writable` und `legacy` entfallen dann. Eine vorhand
 | `writable` | `{ journalMode }`. Ein echter, festgeschriebener Schreibvorgang ohne Spur: In einer `BEGIN IMMEDIATE`-Transaktion bekommt `PRAGMA user_version` seinen eigenen Wert. SQLite schreibt dabei Seite 1 neu (in die `-wal`-Datei); Daten und Schema-Version bleiben gleich. Scheitert er: `read_only` (bzw. `locked`). Ist `journal_mode` nicht `wal`, ist der Schritt eine Warnung (`warnings: ['writable']`). |
 | `sqlite_version` | `{ version }` |
 | `migrations` | `{ core, pds }` aus `core_migrations` / `pds_migrations` (0, wenn die Tabelle fehlt) |
-| `legacy` | `{ rows }` – nur, wenn `wiring_files` der .NET-Version in der Datei liegt; die Admin-Konsole kann sie übernehmen |
 
 Ergebnis: `{ path, warnings, exists, folderExists }`. Fehlercodes aus den Ergebniscodes von SQLite (`errcode & 0xff`) bzw. des
 Dateisystems: `cannot_open` (SQLITE_CANTOPEN, SQLITE_PERM, EACCES, EPERM, ENOENT, ENOTDIR, EISDIR, EEXIST),

@@ -152,8 +152,9 @@ fn server(json: &Value) -> &Value {
     &json["apps"]["http"]["servers"]["pds"]
 }
 
+/// Die Handler der allgemeinen Route (die letzte; davor steht nur der Upload).
 fn handlers(json: &Value) -> &Vec<Value> {
-    server(json)["routes"][0]["handle"].as_array().unwrap()
+    server(json)["routes"][1]["handle"].as_array().unwrap()
 }
 
 fn handler<'a>(json: &'a Value, name: &str) -> &'a Value {
@@ -395,12 +396,13 @@ fn database_url_keeps_unreserved_characters() {
 // ---------------------------------------------------------------------------------------------
 
 // Sortiert wie die Schlüssel der `BTreeMap` aus `env_map`.
-const APP_ENV_KEYS: [&str; 18] = [
+const APP_ENV_KEYS: [&str; 20] = [
     "HOST",
     "NITRO_SHUTDOWN_TIMEOUT",
     "NODE_ENV",
     "NUXT_APP_SECRET",
     "NUXT_DATABASE_URL",
+    "NUXT_EPLAN_WORKER",
     "NUXT_LOG_DIR",
     "NUXT_OIDC_ADMIN_ROLES",
     "NUXT_OIDC_CLIENT_ID",
@@ -408,6 +410,7 @@ const APP_ENV_KEYS: [&str; 18] = [
     "NUXT_OIDC_ISSUER",
     "NUXT_OIDC_ROLES_CLAIM",
     "NUXT_OIDC_SCOPES",
+    "NUXT_PDS_DATA_DIR",
     "NUXT_PUBLIC_APP_URL",
     "NUXT_PUBLIC_MCP_ENABLED",
     "NUXT_PUBLIC_OIDC_PROVIDER_NAME",
@@ -436,7 +439,7 @@ fn app_env_values() {
     config.mcp.enabled = true;
     let env = app_env(&config);
 
-    let expected: [(&str, String); 17] = [
+    let expected: [(&str, String); 19] = [
         ("NODE_ENV", "production".into()),
         ("HOST", "127.0.0.1".into()),
         ("PORT", "3100".into()),
@@ -465,6 +468,11 @@ fn app_env_values() {
             "NUXT_LOG_DIR",
             paths().logs_dir().to_string_lossy().into_owned(),
         ),
+        (
+            "NUXT_PDS_DATA_DIR",
+            paths().data_dir.to_string_lossy().into_owned(),
+        ),
+        ("NUXT_EPLAN_WORKER", r"pipe:\\.\pipe\pds-eplan".into()),
     ];
     for (key, value) in expected {
         assert_eq!(env[key], value, "{key}");
@@ -641,6 +649,23 @@ fn caddy_headers_and_body_limit() {
 
     assert_eq!(handler(&json, "request_body")["max_size"], 2_000_000);
 
+    // Der Upload eines Projekts hat dieselbe Kette mit größerer Grenze und steht davor
+    let upload = &server(&json)["routes"][0];
+    assert_eq!(
+        upload["match"],
+        json!([{"host": [HOST], "path": ["/api/projects/upload"]}])
+    );
+    assert_eq!(upload["terminal"], true);
+    let upload_chain = upload["handle"].as_array().unwrap();
+    assert_eq!(upload_chain[0]["handler"], "request_body");
+    assert_eq!(upload_chain[0]["max_size"], 2_147_483_648u64);
+    assert_eq!(upload_chain[1..], handlers(&json)[1..]);
+    // Kein Zeitlimit für das Lesen und Schreiben: Ein großer Upload darf dauern
+    for timeout in ["read_timeout", "read_header_timeout", "write_timeout"] {
+        assert!(server(&json).get(timeout).is_none(), "{timeout}");
+    }
+    assert!(upload_chain[0].get("read_timeout").is_none());
+
     let encode = handler(&json, "encode");
     assert_eq!(encode["encodings"], json!({"zstd": {}, "gzip": {}}));
     assert_eq!(encode["prefer"], json!(["zstd", "gzip"]));
@@ -678,10 +703,10 @@ fn caddy_listens_for_the_public_host() {
     assert_eq!(server(&json)["listen"], json!([":8443"]));
     assert_eq!(server(&json)["protocols"], json!(["h1", "h2"]));
     assert_eq!(
-        server(&json)["routes"][0]["match"],
+        server(&json)["routes"][1]["match"],
         json!([{"host": [HOST]}])
     );
-    assert_eq!(server(&json)["routes"].as_array().unwrap().len(), 1);
+    assert_eq!(server(&json)["routes"].as_array().unwrap().len(), 2);
     // HTTPS-Umleitung und Zertifikate verwaltet Caddy selbst, sie bleiben also eingeschaltet
     assert!(server(&json).get("automatic_https").is_none());
 }
@@ -790,7 +815,7 @@ fn caddy_off_mode_http_only() {
     assert_eq!(json["apps"]["http"]["https_port"], 80);
     assert_eq!(server(&json)["protocols"], json!(["h1", "h2"]));
     assert_eq!(
-        server(&json)["routes"][0]["match"],
+        server(&json)["routes"][1]["match"],
         json!([{"host": [HOST]}])
     );
     // Die Handler-Kette ist dieselbe wie bei TLS

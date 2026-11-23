@@ -163,10 +163,7 @@ fn db_backup_env_names_file_and_target() {
         lookup(&env, "NUXT_DATABASE_URL"),
         Some(r"sqlite:D:\PDS\pds.db")
     );
-    assert_eq!(
-        lookup(&env, "PDS_BACKUP_FILE"),
-        Some("/sicherung/pds-1.db")
-    );
+    assert_eq!(lookup(&env, "PDS_BACKUP_FILE"), Some("/sicherung/pds-1.db"));
 }
 
 #[test]

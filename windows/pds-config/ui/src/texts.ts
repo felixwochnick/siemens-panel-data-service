@@ -1,6 +1,7 @@
 // Alle Texte der Oberfläche (nur Deutsch). Zustände und Statuszeilen wie in der CLI (`status`).
 import type { ChildStatus } from './bindings/ChildStatus'
 import type { DbKind } from './bindings/DbKind'
+import type { EplanStatus } from './bindings/EplanStatus'
 import type { PortStatus } from './bindings/PortStatus'
 import type { ProbeResult } from './bindings/ProbeResult'
 import type { ScmInfo } from './bindings/ScmInfo'
@@ -39,6 +40,22 @@ function startTypeText(service: ScmInfo): string {
   }
 }
 
+// Wie `status_text` in der CLI (`pds status`)
+function serviceText(service: ScmInfo | null): string {
+  if (!service) return 'nicht abfragbar (nur unter Windows mit Dienststeuerung)'
+  if (service.state === 'not_installed') return 'nicht installiert'
+  const start = startTypeText(service)
+  return start ? `${scmTexts[service.state]} (Start: ${start})` : scmTexts[service.state]
+}
+
+// Wie `eplan_cmd::summary` in der CLI
+function eplanSummary(eplan: EplanStatus): string {
+  if (!eplan.workerPresent) return 'fehlt in dieser Installation (MSI ohne EPLAN-Worker gebaut)'
+  if (!eplan.service) return serviceText(null)
+  if (eplan.service.state === 'not_installed') return 'nicht eingerichtet'
+  return `${serviceText(eplan.service)}, Konto ${eplan.service.account}`
+}
+
 export const texts = {
   app: {
     name: 'EPLAN Panel Data Service',
@@ -59,6 +76,7 @@ export const texts = {
     addressTls: 'Adresse und TLS',
     database: 'Datenbank',
     login: 'Anmeldung',
+    eplan: 'EPLAN-Worker',
     assistants: 'KI-Assistenten',
   },
 
@@ -69,7 +87,7 @@ export const texts = {
     stop: 'Stoppen',
     restart: 'Neu starten',
     openLogs: 'Logdatei öffnen …',
-    openWebConsole: 'Web-Konsole öffnen',
+    openWebConsole: 'Web-App öffnen',
     testConnection: 'Verbindung testen',
     setup: 'Einrichten …',
     exportScript: 'SQL-Skript exportieren …',
@@ -129,14 +147,14 @@ export const texts = {
 
   status: {
     heading: 'Status',
-    description: 'Zustand des Windows-Dienstes, Erreichbarkeit der Web-Konsole und letzte Meldungen.',
+    description: 'Zustand der Windows-Dienste, Erreichbarkeit der Web-App und letzte Meldungen.',
     stale: (seconds: number) => `Dienst läuft nicht (letztes Lebenszeichen vor ${seconds} s)`,
     staleDetail: 'Der zuletzt geschriebene Status ist veraltet. Der Dienst ist abgestürzt oder wurde beendet.',
     logFilter: 'Logdateien',
     logOpened: (file: string) => `Im Editor geöffnet: ${file}`,
     webConsole: {
-      heading: 'Web-Konsole',
-      description: 'EPLAN-API, Ordner, Zeitplan und Netzlaufwerk sowie Läufe, verfolgte Dateien und Protokolle verwalten Admins in der Web-Konsole. Diese Oberfläche richtet nur Adresse, Zertifikat, Datenbank und Anmeldung ein.',
+      heading: 'Web-App',
+      description: 'In der Web-App analysieren alle angemeldeten Benutzer EPLAN-Projekte (hochladen oder aus dem Projektordner wählen) und sehen die Ergebnisse als Tabellen. Admins stellen dort zusätzlich Projektordner, Netzlaufwerk, EPLAN-Pfade, Zeitplan und Aufbewahrung ein und sehen die Protokolle. Diese Oberfläche richtet nur Adresse, Zertifikat, Datenbank, Anmeldung und den EPLAN-Worker ein.',
       opened: (url: string) => `Im Browser geöffnet: ${url}`,
     },
     labels: {
@@ -146,6 +164,7 @@ export const texts = {
       database: 'Datenbank',
       healthInternal: 'Health intern',
       healthPublic: 'Health öffentlich',
+      eplan: 'EPLAN-Worker',
       versions: 'Versionen',
       app: 'App (Node)',
       proxy: 'Proxy (Caddy)',
@@ -158,12 +177,8 @@ export const texts = {
     since: (state: string, since: string) => `${state} (seit ${since})`,
     noStatus: 'Kein Status vorhanden – der Dienst lief noch nie',
     noAddress: '(kein Hostname konfiguriert)',
-    service: (service: ScmInfo | null) => {
-      if (!service) return 'nicht abfragbar (nur unter Windows mit Dienststeuerung)'
-      if (service.state === 'not_installed') return 'nicht installiert'
-      const start = startTypeText(service)
-      return start ? `${scmTexts[service.state]} (Start: ${start})` : scmTexts[service.state]
-    },
+    service: serviceText,
+    eplan: eplanSummary,
     probe: (probe: ProbeResult | null) => {
       if (!probe) return 'nicht geprüft'
       return probe.ok ? `ok (${probe.message})` : `Fehler (${probe.message})`
@@ -184,7 +199,7 @@ export const texts = {
     noError: '–',
     lastError: (at: string, source: string, message: string) => `${at} (${source}): ${message}`,
     confirmStopTitle: 'Dienst stoppen?',
-    confirmStop: 'Die Web-Konsole ist danach nicht mehr erreichbar und geplante Läufe entfallen, bis der Dienst wieder gestartet wird.',
+    confirmStop: 'Die Web-App ist danach nicht mehr erreichbar, und es laufen keine Analysen, bis der Dienst wieder gestartet wird.',
     controlDone: {
       start: 'Dienst wird gestartet',
       stop: 'Dienst wird gestoppt',
@@ -194,10 +209,10 @@ export const texts = {
 
   addressTls: {
     heading: 'Adresse und TLS',
-    description: 'Unter welcher Adresse die Web-Konsole erreichbar ist und woher das Zertifikat kommt.',
+    description: 'Unter welcher Adresse die Web-App erreichbar ist und woher das Zertifikat kommt.',
     address: 'Adresse',
     host: 'Hostname',
-    hostHelp: 'Ohne Schema und Port, so wie ihn die Admins im Browser eingeben.',
+    hostHelp: 'Ohne Schema und Port, so wie ihn die Benutzer im Browser eingeben.',
     hostPlaceholder: 'pds.example.com',
     port: 'Öffentlicher Port',
     appUrl: 'App-Adresse',
@@ -272,20 +287,18 @@ export const texts = {
 
   database: {
     heading: 'Datenbank',
-    description: 'Wo die App Einstellungen, Läufe und verfolgte Dateien speichert: in einer SQLite-Datei auf diesem Server oder auf einem SQL Server. Ihre Tabellen legt die App beim Start selbst an.',
+    description: 'Wo die App Einstellungen, Projekte und Analyse-Ergebnisse speichert: in einer SQLite-Datei auf diesem Server oder auf einem SQL Server. Ihre Tabellen legt die App beim Start selbst an.',
     storage: 'Speicherort',
     kind: 'Art der Datenbank',
     kinds: {
       sqlite: { label: 'SQLite (Datei)', description: 'Eine Datei auf diesem Server, ohne eigenen Datenbankserver (Standard)' },
-      sqlserver: { label: 'SQL Server', description: 'Eine Datenbank auf einem vorhandenen SQL Server' },
+      sqlserver: { label: 'SQL Server', description: 'Eine Datenbank auf einem vorhandenen SQL Server – empfohlen, wenn andere Systeme die Ergebnisse lesen (Sichten pds.v_current_*)' },
     } satisfies Record<DbKind, { label: string, description: string }>,
     kindChangeTitle: 'Nach dem Speichern startet die App mit einer leeren Datenbank',
-    kindChange: (from: DbKind) => `Einstellungen, Läufe und verfolgte Dateien bleiben in der bisherigen Datenbank (${from === 'sqlite' ? 'SQLite-Datei' : 'SQL Server'}) und werden nicht übertragen. Sie wird nicht gelöscht: Ein Wechsel zurück findet ihre Daten wieder.`,
+    kindChange: (from: DbKind) => `Einstellungen, Projekte und Analysen bleiben in der bisherigen Datenbank (${from === 'sqlite' ? 'SQLite-Datei' : 'SQL Server'}) und werden nicht übertragen. Sie wird nicht gelöscht: Ein Wechsel zurück findet ihre Daten wieder.`,
     path: 'Datenbankdatei',
     pathHelp: 'Leer lassen für die Standarddatei im Datenordner. Nur ein lokales Laufwerk, nie ein Netzlaufwerk: Dort drohen Sperrfehler und eine beschädigte Datenbank.',
     pathFolder: 'Bei einem eigenen Pfad legt das Speichern einen fehlenden Ordner an und gibt dem Dienstkonto NT SERVICE\\pds dort das Recht „Ändern“, denn SQLite legt neben der Datei die Hilfsdateien -wal und -shm an.',
-    legacyTitle: 'Datenbank der .NET-Version weiterverwenden',
-    legacy: 'Eine Kopie ihrer Datei pds.db hier eintragen, nicht das Original: Die App ergänzt darin ihre Tabellen. Die Web-Konsole bietet danach an, die verfolgten Dateien (Tabelle wiring_files) zu übernehmen.',
     connection: 'Verbindung',
     server: 'Server',
     serverHelp: 'Hostname oder IPv4-Adresse, ohne Instanznamen (benannte Instanzen über ihren festen Port).',
@@ -325,7 +338,7 @@ export const texts = {
 
   login: {
     heading: 'Anmeldung',
-    description: 'Anmeldung an der Web-Konsole über Microsoft Entra ID (OpenID Connect).',
+    description: 'Anmeldung an der Web-App über Microsoft Entra ID (OpenID Connect).',
     entra: 'Entra ID',
     tenantId: 'Tenant-ID',
     tenantIdUnused: 'Wird nicht verwendet, solange ein eigener Issuer eingetragen ist.',
@@ -336,7 +349,7 @@ export const texts = {
     rolesClaim: 'Rollen-Claim',
     rolesClaimHelp: 'Claim im ID-Token mit den App-Rollen.',
     adminRoles: 'Admin-Rollen',
-    adminRolesHelp: 'Kommagetrennt; nur Personen mit einer dieser App-Rollen dürfen die Web-Konsole benutzen.',
+    adminRolesHelp: 'Kommagetrennt; Personen mit einer dieser App-Rollen sind Admins (Einstellungen, Protokolle, Löschen). Alle anderen angemeldeten Personen analysieren Projekte und sehen die Ergebnisse.',
     providerName: 'Anzeigename',
     providerNameHelp: 'Erscheint auf der Anmeldeseite („Anmelden mit …“).',
     redirectUri: 'Redirect-URI',
@@ -353,11 +366,11 @@ export const texts = {
     noProxy: 'Ausnahmen (NO_PROXY)',
     noProxyHelp: 'Kommagetrennt, z. B. localhost,.intern.example.com',
     appSecret: 'App-Secret',
-    appSecretHelp: 'Signiert Sitzungen und die Zugänge der KI-Assistenten und verschlüsselt die Passwörter der Web-Konsole (EPLAN-API, Netzlaufwerk). Es wurde bei der Installation erzeugt und wird nie angezeigt.',
+    appSecretHelp: 'Signiert Sitzungen und die Zugänge der KI-Assistenten und verschlüsselt das Netzlaufwerk-Passwort in den Einstellungen der Web-App. Es wurde bei der Installation erzeugt und wird nie angezeigt.',
     appSecretSet: 'gesetzt',
     appSecretMissing: 'fehlt',
     regenerateTitle: 'App-Secret neu erzeugen?',
-    regenerateWarning: 'Danach sind alle Anmeldungen und KI-Assistenten-Verbindungen ungültig, und die Passwörter für EPLAN-API und Netzlaufwerk müssen in der Web-Konsole neu eingegeben werden. Bis dahin scheitern die Läufe.',
+    regenerateWarning: 'Danach sind alle Anmeldungen und KI-Assistenten-Verbindungen ungültig, und das Netzlaufwerk-Passwort muss in den Einstellungen der Web-App neu eingegeben werden. Bis dahin scheitern Analysen von Projekten auf dem Netzlaufwerk.',
     regenerateConfirm: 'Neu erzeugen',
     regenerated: 'App-Secret neu erzeugt',
     regeneratedDetail: 'Wirksam nach dem nächsten Neustart des Dienstes.',
@@ -367,13 +380,56 @@ export const texts = {
     heading: 'KI-Assistenten',
     description: 'Anbindung von Claude Code über MCP (Model Context Protocol).',
     toggle: 'KI-Assistenten (MCP) zulassen',
-    toggleHelp: 'Claude Code kann dann im Namen angemeldeter Admins Status, Läufe, Dateien, Einstellungen und Protokolle lesen und – wenn sie es zulassen – Läufe starten, den Zeitplan schalten und Einstellungen ändern (nie Passwörter). Standard: aus.',
+    toggleHelp: 'Claude Code kann dann im Namen angemeldeter Benutzer Projekte, Analysen und Ergebnisse lesen und – wenn sie es zulassen – Analysen starten; im Namen von Admins auch Einstellungen lesen und ändern (nie Passwörter) und den Zeitplan schalten. Standard: aus.',
     privacyTitle: 'Datenschutz',
     // docs/pds-windows.md, Abschnitt zu KI-Assistenten (MCP)
-    privacy: 'Was der Assistent liest (Projektnamen, Analyse-Ergebnisse, Protokolle), geht an den Anbieter der KI (bei Claude Code an Anthropic). Erst einschalten, wenn das im Unternehmen freigegeben und Claude Code zugelassen ist. Die Admins sehen diesen Hinweis auch auf der Seite „KI-Assistenten“ der Web-Konsole.',
+    privacy: 'Was der Assistent liest (Projektnamen, Analyse-Ergebnisse, Protokolle), geht an den Anbieter der KI (bei Claude Code an Anthropic). Erst einschalten, wenn das im Unternehmen freigegeben und Claude Code zugelassen ist. Die Benutzer sehen diesen Hinweis auch auf der Seite „KI-Assistenten“ der Web-App.',
     endpoint: 'MCP-Adresse',
-    endpointHelp: 'Diese Adresse tragen die Admins in Claude Code ein. Die Anmeldung läuft über die bestehende Entra-ID-Anmeldung; Verbindungen anlegen können nur Admins.',
+    endpointHelp: 'Diese Adresse tragen die Benutzer in Claude Code ein. Die Anmeldung läuft über die bestehende Entra-ID-Anmeldung.',
     off: 'Ausgeschaltet: Alle MCP-Endpunkte antworten mit 404, bestehende Zugänge sind ungültig.',
+  },
+
+  eplan: {
+    heading: 'EPLAN-Worker',
+    description: 'Der Dienst pds-eplan öffnet die Projekte mit EPLAN und liefert der Web-App die Rohdaten über eine Named Pipe. Er läuft unter einem Benutzerkonto mit EPLAN-Lizenz.',
+    service: 'Dienst',
+    labels: {
+      state: 'Worker',
+      account: 'Konto',
+      executable: 'Programm',
+    },
+    executable: (path: string, present: boolean) => present ? path : `${path} (fehlt)`,
+    workerMissingTitle: 'Der EPLAN-Worker fehlt in dieser Installation',
+    workerMissing: 'Das MSI wurde ohne EPLAN gebaut (build-payload.ps1 -SkipEplanWorker). Für Analysen ein MSI mit Worker installieren.',
+    notInstalled: 'Noch nicht eingerichtet: Bis dahin bleiben Analysen in der Warteschlange.',
+    setupHeading: 'Konto',
+    setupHelp: 'Das Konto braucht eine EPLAN-Lizenz. Es bekommt das Recht „Als Dienst anmelden“, Lesen auf uploads\\ und Ändern auf work\\ und logs\\ im Datenordner, sonst nichts. Das Passwort wird nur an Windows übergeben und nirgends gespeichert.',
+    account: 'Konto',
+    accountHelp: 'DOMÄNE\\Benutzer, .\\Benutzer (lokales Konto) oder benutzer@domäne',
+    accountPlaceholder: 'EXAMPLE\\svc-eplan',
+    password: 'Passwort',
+    passwordHelp: 'Wird vorab geprüft; bei einem falschen Passwort ändert sich am Dienst nichts.',
+    install: 'Einrichten',
+    change: 'Konto ändern',
+    installing: 'Anmeldung prüfen, Dienst einrichten und starten …',
+    installed: (account: string) => `EPLAN-Worker läuft unter ${account}`,
+    installedNotStarted: (account: string) => `EPLAN-Worker unter ${account} eingerichtet, aber nicht gestartet`,
+    warningsTitle: 'Hinweise',
+    accountProblems: {
+      missing: 'Das Konto fehlt.',
+      noDomain: 'Die Domäne fehlt: lokale Konten als .\\Benutzer, Domänenkonten als DOMÄNE\\Benutzer oder benutzer@domäne.',
+      builtin: 'Eingebaute und virtuelle Konten (LocalSystem, NT AUTHORITY\\…, NT SERVICE\\…) gehen nicht: EPLAN braucht ein Benutzerkonto mit Lizenz.',
+      managed: 'Verwaltete Dienstkonten und Computerkonten (…$) gehen nicht: EPLAN braucht ein Benutzerkonto mit Passwort und Lizenz.',
+      invalid: 'Der Kontoname ist ungültig.',
+    },
+    confirmStopTitle: 'EPLAN-Worker stoppen?',
+    confirmStop: 'Laufende Analysen scheitern, neue bleiben in der Warteschlange, bis der Worker wieder läuft.',
+    controlDone: {
+      start: 'EPLAN-Worker wird gestartet',
+      stop: 'EPLAN-Worker wird gestoppt',
+      restart: 'EPLAN-Worker wird neu gestartet',
+    },
+    licenseHint: 'Die EPLAN-Lizenz unter dem Konto prüfen: Worker stoppen und als das Konto pds-eplan.exe run --dialogs starten (siehe docs/pds-windows.md, Fehlersuche).',
   },
 
   tool: {

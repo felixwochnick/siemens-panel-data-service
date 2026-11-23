@@ -13,7 +13,7 @@
 /// Welcher Kindprozess geendet ist.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChildKind {
-    /// Node mit der App (Web-Konsole und Zeitplaner).
+    /// Node mit der App (Web-App, Warteschlange der Analysen und Zeitplaner).
     App,
     /// Caddy.
     Proxy,

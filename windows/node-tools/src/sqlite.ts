@@ -153,10 +153,6 @@ function tableExists(db: DatabaseSync, name: string): boolean {
   return Number(scalar(db, 'SELECT count(*) FROM sqlite_master WHERE type = \'table\' AND name = ?', name)) > 0
 }
 
-function entries(count: number): string {
-  return `${count} ${count === 1 ? 'Eintrag' : 'Einträge'}`
-}
-
 /**
  * Beweist mit einem echten, festgeschriebenen Schreibvorgang, dass Datenbank, -wal und -shm beschreibbar sind, ohne
  * eine Spur zu hinterlassen: `user_version` bekommt seinen eigenen Wert. SQLite schreibt dafür Seite 1 neu (im
@@ -301,12 +297,6 @@ export async function sqliteTest(path: string, report: Reporter): Promise<Outcom
       return found
     })
     report.ok('migrations', migrationsMessage(counts), counts)
-
-    // Tabelle der .NET-Version: Zeigt die URL auf deren pds.db, kann die Konsole die Nachverfolgung übernehmen
-    const legacyRows = await sqliteStep(report, 'legacy', path, () => tableExists(db, 'wiring_files') ? Number(scalar(db, 'SELECT count(*) FROM wiring_files')) : undefined)
-    if (legacyRows !== undefined) {
-      report.ok('legacy', `Tabelle „wiring_files“ der .NET-Version gefunden (${entries(legacyRows)}). Die Admin-Konsole kann sie übernehmen (Einstellungen, „Bisherige Nachverfolgung“).`, { rows: legacyRows })
-    }
   }
   finally {
     db.close()

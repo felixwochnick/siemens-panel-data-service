@@ -17,6 +17,7 @@ use ts_rs::TS;
 use zeroize::Zeroizing;
 
 use crate::config::{self, Config, ConfigError, DbKind, SecretField, Secrets, TlsMode};
+use crate::eplan::{self, EplanStatus};
 use crate::health::{self, ProbeResult};
 use crate::names::{FIREWALL_RULE_NAME, SERVICE_ACCOUNT};
 use crate::paths::Paths;
@@ -264,7 +265,7 @@ pub fn ensure_app_secret(paths: &Paths, protector: &dyn Protector) -> Result<boo
 }
 
 /// Ersetzt das App-Secret. Danach sind alle Sitzungen und MCP-Verbindungen ungültig, und die App kann
-/// die damit verschlüsselten Passwörter der Controller-Einstellungen nicht mehr lesen.
+/// das damit verschlüsselte Passwort des Netzlaufwerks in ihren Einstellungen nicht mehr lesen.
 pub fn regenerate_app_secret(paths: &Paths, protector: &dyn Protector) -> Result<(), OpsError> {
     require_data_dir(paths)?;
     let mut config = config::load(&paths.config_file())?;
@@ -1063,6 +1064,8 @@ pub struct StatusReport {
     pub database: String,
     /// `config.toml` ließ sich nicht lesen; `app_url` ist dann leer, ohne dass der Hostname fehlt.
     pub config_error: Option<ReadIssue>,
+    /// Der Worker-Dienst `pds-eplan` (Zustand, Konto, ob das Programm vorhanden ist).
+    pub eplan: EplanStatus,
 }
 
 /// Eine Datei des Datenordners, die da ist, sich aber nicht lesen ließ.
@@ -1140,6 +1143,7 @@ pub fn status_report(paths: &Paths) -> StatusReport {
         app_url,
         database,
         config_error,
+        eplan: eplan::status(&eplan::SystemHost, paths),
     }
 }
 

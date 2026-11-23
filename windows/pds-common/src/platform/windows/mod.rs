@@ -6,6 +6,7 @@ pub(super) mod acl;
 pub(super) mod cert_store;
 pub(super) mod dpapi;
 pub(super) mod drive;
+pub(super) mod eplan;
 pub(super) mod eventlog;
 pub(super) mod firewall;
 pub(super) mod job;

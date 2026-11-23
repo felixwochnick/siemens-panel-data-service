@@ -10,12 +10,14 @@ use clap::error::{ContextKind, ErrorKind};
 use clap::{Arg, ArgAction, ArgGroup, CommandFactory, FromArgMatches, Parser, Subcommand};
 use pds_common::Paths;
 use pds_common::config::ConfigError;
+use pds_common::eplan::Control;
 use pds_common::names::product_version;
 use pds_common::ops::OpsError;
 use pds_common::platform::PlatformError;
 
 pub mod config_cmd;
 pub mod db_cmd;
+pub mod eplan_cmd;
 pub mod oidc_cmd;
 pub mod ports_cmd;
 pub mod run_cmd;
@@ -118,6 +120,9 @@ enum Command {
     /// Prüfen, ob die Ports frei sind
     #[command(subcommand)]
     Ports(PortsCommand),
+    /// EPLAN-Worker (Dienst pds-eplan) einrichten, steuern und anzeigen
+    #[command(subcommand)]
+    Eplan(EplanCommand),
     /// Dienstbetrieb; startet der Dienststeuerungs-Manager (ohne Windows: Vordergrund)
     #[command(hide = true)]
     Daemon,
@@ -188,8 +193,8 @@ enum ConfigCommand {
 
 #[derive(Debug, Subcommand)]
 enum AppSecretCommand {
-    /// Neues App-Secret erzeugen; Sitzungen, MCP-Verbindungen und die Passwörter der
-    /// Web-Konsole (EPLAN-API, Netzlaufwerk) werden ungültig
+    /// Neues App-Secret erzeugen; Sitzungen, MCP-Verbindungen und das Netzlaufwerk-Passwort
+    /// in den Einstellungen der Web-App werden ungültig
     #[command(override_usage = "pds config app-secret regenerate [--yes]")]
     Regenerate {
         /// Ohne Rückfrage ausführen
@@ -286,8 +291,8 @@ enum TlsCommand {
 enum DbCommand {
     /// Datenbank mit der gespeicherten Konfiguration prüfen (Exit-Code 3 bei Fehlschlag)
     ///
-    /// SQL Server: Verbindung, Rechte und Migrationen. SQLite: Datei öffnen (fehlt sie, wird sie
-    /// leer angelegt), beschreiben und die Migrationen zählen.
+    /// SQL Server: Verbindung, Rechte und Migrationen. SQLite: Datei öffnen, beschreiben und die
+    /// Migrationen zählen; angelegt wird nichts (eine fehlende Datei legt der Dienst beim Start an).
     #[command(override_usage = "pds db test [--json]")]
     Test {
         /// Ergebnis als JSON (für Skripte)
@@ -376,10 +381,52 @@ enum PortsCommand {
 }
 
 #[derive(Debug, Subcommand)]
+enum EplanCommand {
+    /// Worker-Dienst unter einem Benutzerkonto mit EPLAN-Lizenz einrichten oder dessen Konto bzw.
+    /// Passwort ändern
+    ///
+    /// Konto als DOMÄNE\Benutzer, .\Benutzer (lokales Konto) oder benutzer@domäne. Das Passwort nie
+    /// als Argument angeben: Es wird verdeckt abgefragt oder mit --password-stdin als eine Zeile
+    /// gelesen. Gewährt dem Konto das Recht „Als Dienst anmelden“, prüft die Anmeldung vorab (bei
+    /// Fehlschlag Exit-Code 3, am Dienst ändert sich nichts), legt den Dienst pds-eplan an bzw. ändert
+    /// ihn (Start automatisch, verzögert; Neustart nach 10 s, 30 s, 60 s), erlaubt NT SERVICE\pds,
+    /// ihn zu starten und zu stoppen, gibt dem Konto Lesen auf uploads\ und Ändern auf work\ und
+    /// logs\ im Datenordner und startet ihn.
+    #[command(override_usage = "pds eplan install --user <KONTO> [--password-stdin]")]
+    Install {
+        /// Konto des Workers, z. B. EXAMPLE\svc-eplan
+        #[arg(long, value_name = "KONTO")]
+        user: String,
+        /// Passwort als eine Zeile von stdin lesen
+        #[arg(long)]
+        password_stdin: bool,
+        /// Wird abgelehnt: Secrets nie als Argument
+        #[arg(long, hide = true, value_name = "PASSWORT")]
+        password: Option<String>,
+    },
+    /// Worker-Dienst stoppen und entfernen; das Konto verliert seine Rechte im Datenordner
+    Uninstall,
+    /// Zustand, Start und Konto des Worker-Dienstes anzeigen
+    #[command(override_usage = "pds eplan status [--json]")]
+    Status {
+        /// Ausgabe als JSON (für Skripte)
+        #[arg(long)]
+        json: bool,
+    },
+    /// Worker-Dienst starten
+    Start,
+    /// Worker-Dienst stoppen (EPLAN schließt dabei ein offenes Projekt)
+    Stop,
+    /// Worker-Dienst neu starten
+    Restart,
+}
+
+#[derive(Debug, Subcommand)]
 enum SetupCommand {
-    /// Datenordner, App-Secret, Ereignisquelle und Firewall-Regel einrichten
+    /// Datenordner, App-Secret, Ereignisquelle und Firewall-Regel einrichten; einen vorhandenen
+    /// EPLAN-Worker nach dem Update wieder starten
     Install,
-    /// Firewall-Regel und Ereignisquelle entfernen
+    /// Firewall-Regel, Ereignisquelle und EPLAN-Worker entfernen
     #[command(override_usage = "pds setup uninstall [--remove-data]")]
     Uninstall {
         /// Auch den Datenordner löschen (Konfiguration, Zertifikat, Logs)
@@ -494,6 +541,18 @@ fn dispatch(command: Command) -> CliResult {
             oidc_cmd::test(&paths, check_client, json)
         }
         Command::Ports(PortsCommand::Check { json }) => ports_cmd::check(&paths, json),
+        Command::Eplan(command) => match command {
+            EplanCommand::Install {
+                user,
+                password_stdin,
+                password,
+            } => eplan_cmd::install(&paths, &user, password_stdin, password.is_some()),
+            EplanCommand::Uninstall => eplan_cmd::uninstall(&paths),
+            EplanCommand::Status { json } => eplan_cmd::status(&paths, json),
+            EplanCommand::Start => eplan_cmd::control(Control::Start),
+            EplanCommand::Stop => eplan_cmd::control(Control::Stop),
+            EplanCommand::Restart => eplan_cmd::control(Control::Restart),
+        },
         Command::Daemon => service_cmd::daemon(&paths),
         Command::Setup(SetupCommand::Install) => setup_cmd::install(&paths),
         Command::Setup(SetupCommand::Uninstall { remove_data }) => {
@@ -698,6 +757,40 @@ mod tests {
                 ..
             })
         ));
+    }
+
+    #[test]
+    fn eplan_install_needs_a_user_and_parses_a_password_only_to_reject_it() {
+        let cli = parse(&["eplan", "install", "--user", r"EXAMPLE\eplan"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Command::Eplan(EplanCommand::Install {
+                password: None,
+                password_stdin: false,
+                ..
+            })
+        ));
+        assert!(parse(&["eplan", "install"]).is_err());
+        let cli = parse(&[
+            "eplan",
+            "install",
+            "--user",
+            r".\eplan",
+            "--password",
+            "geheim",
+        ])
+        .unwrap();
+        assert!(matches!(
+            cli.command,
+            Command::Eplan(EplanCommand::Install {
+                password: Some(_),
+                ..
+            })
+        ));
+        for command in ["uninstall", "status", "start", "stop", "restart"] {
+            assert!(parse(&["eplan", command]).is_ok(), "{command}");
+        }
+        assert!(parse(&["eplan", "status", "--json"]).is_ok());
     }
 
     #[test]
