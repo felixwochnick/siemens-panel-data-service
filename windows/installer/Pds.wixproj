@@ -1,0 +1,34 @@
+<!--
+  MSI-Projekt (WiX v5). Aufruf über windows/scripts/build-msi.ps1, das Version, Payload und
+  WebView2-Installer setzt. WiX bleibt bewusst bei 5.0.x: Ab 6 gilt die Open Source Maintenance Fee.
+-->
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <PropertyGroup>
+    <!-- Eigene Namen, damit nichts mit MSBuild-Standards wie Version kollidiert -->
+    <PdsVersion Condition="'$(PdsVersion)' == ''">0.0.1</PdsVersion>
+    <OutputName>pds-$(PdsVersion)-x64</OutputName>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <Cultures>de-DE</Cultures>
+    <PdsPayloadDir Condition="'$(PdsPayloadDir)' == ''">$(MSBuildThisFileDirectory)..\.payload</PdsPayloadDir>
+    <PdsWebView2Installer Condition="'$(PdsWebView2Installer)' == ''">$(MSBuildThisFileDirectory)..\.vendor\webview2\MicrosoftEdgeWebView2RuntimeInstallerX64.exe</PdsWebView2Installer>
+    <DefineConstants>$(DefineConstants);Version=$(PdsVersion);PayloadDir=$(PdsPayloadDir);WebView2Installer=$(PdsWebView2Installer)</DefineConstants>
+    <!--
+      WIX1149: ServiceConfig sei laut Windows-Installer-SDK „not [work] as expected“. Das betrifft die
+      Fehleraktionen; die setzt deshalb ConfigureServiceRecovery per sc.exe. Verzögerten Start und das
+      Flag für Fehler ohne Absturz aus ServiceConfig prüft der Smoke-Test in der CI.
+    -->
+    <SuppressSpecificWarnings>1149</SuppressSpecificWarnings>
+    <!--
+      ICE61 meldet AllowSameVersionUpgrades; das ist gewollt (siehe MajorUpgrade in Package.wxs).
+      ICE38/ICE43/ICE57 werten ProgramMenuFolder immer als Benutzerprofil, auch bei perMachine (ALLUSERS=1),
+      und verlangen für die Startmenü-Verknüpfung einen HKCU-KeyPath; hier ist es das Startmenü aller
+      Benutzer mit KeyPath unter HKLM (siehe ConfigShortcut). Das Paket hat sonst keine Benutzerdaten.
+    -->
+    <SuppressIces>ICE61;ICE38;ICE43;ICE57</SuppressIces>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
+  </ItemGroup>
+</Project>

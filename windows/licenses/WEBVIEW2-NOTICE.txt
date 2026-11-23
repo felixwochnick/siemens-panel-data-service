@@ -1,0 +1,15 @@
+Microsoft Edge WebView2 Runtime
+===============================
+
+Das MSI des EPLAN Panel Data Services enthält den Evergreen-Standalone-Installer der Microsoft Edge
+WebView2 Runtime (x64) von Microsoft Corporation. Er wird während der Installation nur ausgeführt,
+wenn die Runtime auf dem System fehlt, und wird nicht in den Programmordner kopiert. Danach hält
+Microsoft Edge Update die Runtime aktuell.
+
+Die WebView2 Runtime ist nicht Teil des EPLAN Panel Data Services. Für sie gelten die Lizenzbedingungen
+von Microsoft (Microsoft Software License Terms, Microsoft Edge WebView2 Runtime):
+https://developer.microsoft.com/microsoft-edge/api/eula/webview2
+
+Weitere Informationen: https://developer.microsoft.com/microsoft-edge/webview2/
+
+Copyright (c) Microsoft Corporation. Alle Rechte vorbehalten.

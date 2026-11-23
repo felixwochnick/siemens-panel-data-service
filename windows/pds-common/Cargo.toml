@@ -1,0 +1,59 @@
+[package]
+name = "pds-common"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+base64.workspace = true
+getrandom.workspace = true
+hex.workspace = true
+p12-keystore.workspace = true
+p256.workspace = true
+p384.workspace = true
+pem.workspace = true
+percent-encoding.workspace = true
+pkcs1.workspace = true
+pkcs8.workspace = true
+sec1.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha1.workspace = true
+thiserror.workspace = true
+time.workspace = true
+toml.workspace = true
+ts-rs.workspace = true
+ureq.workspace = true
+x509-parser.workspace = true
+zeroize.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows-service.workspace = true
+# Öffentliche Health-Prüfung über SChannel und den Zertifikatspeicher von Windows (Firmen-PKI).
+# `-no-default`: ohne mitgelieferte Mozilla-Wurzeln. Unter Linux kein TLS, also kein OpenSSL.
+ureq = { workspace = true, features = ["native-tls-no-default"] }
+
+[target.'cfg(windows)'.dependencies.windows]
+workspace = true
+features = [
+    "Win32_Foundation",
+    "Win32_NetworkManagement_IpHelper",
+    "Win32_NetworkManagement_WindowsFirewall",
+    "Win32_Networking_WinSock",
+    "Win32_Security",
+    "Win32_Security_Authorization",
+    "Win32_Security_Cryptography",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Com",
+    "Win32_System_EventLog",
+    "Win32_System_JobObjects",
+    "Win32_System_Registry",
+    "Win32_System_Services",
+    "Win32_System_Threading",
+]
+
+[dev-dependencies]
+rand.workspace = true
+rcgen.workspace = true
+rsa.workspace = true
+tempfile.workspace = true

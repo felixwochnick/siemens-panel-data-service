@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MSI des EPLAN Panel Data Services (WiX v5). Gebaut über Pds.wixproj bzw. scripts/build-msi.ps1.
+  Präprozessor-Variablen: Version (X.Y.Z), PayloadDir (aus build-payload.ps1), WebView2Installer.
+
+  Der Datenordner %ProgramData%\EPLAN Panel Data Service gehört nicht dem MSI: `setup install` legt ihn an und
+  sichert ihn ab, nur `setup uninstall` mit REMOVE_DATA=1 entfernt ihn. Das MSI legt dort nichts ab.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <!-- UpgradeCode NIE ÄNDERN: Daran erkennt Windows Installer ältere Versionen für das Upgrade -->
+  <Package Name="EPLAN Panel Data Service"
+           Manufacturer="Siemens LPD"
+           Version="$(Version)"
+           UpgradeCode="2754E424-995B-40E1-A0B6-6D724C5B3390"
+           Scope="perMachine"
+           Language="1031"
+           Codepage="1252">
+
+    <!--
+      Alte Version wird vor der neuen vollständig entfernt (afterInstallValidate); Downgrades sind gesperrt.
+      Gleiche Version zählt als Upgrade: Jeder Bau hat einen neuen ProductCode, zwei Builds derselben
+      Version lägen sonst nebeneinander in „Programme und Features“ (ICE61 ist deshalb im wixproj aus).
+    -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="!(loc.DowngradeError)" />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="EPLAN Panel Data Service" />
+    </StandardDirectory>
+
+    <Feature Id="Main" Title="EPLAN Panel Data Service" AllowAbsent="no">
+      <ComponentRef Id="ServiceExe" />
+      <ComponentRef Id="ConfigExe" />
+      <ComponentRef Id="ConfigShortcut" />
+      <ComponentGroupRef Id="PayloadFiles" />
+    </Feature>
+
+    <!-- Die Dienst-EXE hat eine eigene Komponente, weil Dienst, Dienststeuerung und PATH an ihr hängen -->
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="ServiceExe">
+        <File Id="ServiceExe" Source="$(PayloadDir)\pds.exe" KeyPath="yes" />
+
+        <ServiceInstall Id="Service"
+                        Name="pds"
+                        DisplayName="EPLAN Panel Data Service"
+                        Description="!(loc.ServiceDescription)"
+                        Type="ownProcess"
+                        Start="auto"
+                        ErrorControl="normal"
+                        Account="NT SERVICE\pds"
+                        Arguments="daemon"
+                        Vital="yes">
+          <!-- Der Dienst endet bei Fehlern geordnet mit ServiceSpecific(1) statt abzustürzen; damit die
+               Wiederherstellung auch dann greift, gelten die Fehleraktionen auch für Fehler ohne Absturz.
+               Die Fehleraktionen selbst setzt ConfigureServiceRecovery (siehe unten). -->
+          <ServiceConfig DelayedAutoStart="yes"
+                         ServiceSid="unrestricted"
+                         FailureActionsWhen="failedToStopOrReturnedError"
+                         OnInstall="yes"
+                         OnReinstall="yes" />
+        </ServiceInstall>
+
+        <!-- Stoppen und Entfernen mit Warten: Die Dateien dürfen erst danach ersetzt werden -->
+        <ServiceControl Id="Service"
+                        Name="pds"
+                        Stop="both"
+                        Remove="uninstall"
+                        Wait="yes" />
+        <!-- Starten, ohne zusätzlich auf „läuft“ zu warten: `pds status` und das
+             Ereignisprotokoll zeigen einen gescheiterten Start. Der Startaufruf selbst kehrt erst mit dem
+             Dienstprozess zurück; beim ersten Start legt Windows vorher rund 18 s das Profil des
+             virtuellen Kontos an (CI-Messung, siehe docs/pds-windows.md, Fehlersuche). -->
+        <ServiceControl Id="ServiceStart"
+                        Name="pds"
+                        Start="install"
+                        Wait="no" />
+
+        <!-- Damit `pds status` auch auf Server Core ohne Pfad funktioniert -->
+        <Environment Id="PathInstallFolder"
+                     Name="PATH"
+                     Value="[INSTALLFOLDER]"
+                     Part="last"
+                     System="yes"
+                     Action="set"
+                     Permanent="no" />
+      </Component>
+    </DirectoryRef>
+
+    <!--
+      Konfigurationsoberfläche: neben der Dienst-EXE, weil sie Node, Werkzeuge und caddy.exe über ihren
+      eigenen Ordner findet. Das Manifest der EXE fordert Administratorrechte an (UAC beim Start).
+    -->
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="ConfigExe">
+        <File Id="ConfigExe" Source="$(PayloadDir)\pds-config.exe" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!--
+      Startmenü für alle Benutzer (perMachine: ProgramMenuFolder ist das Startmenü aller Benutzer). Die
+      Verknüpfung braucht einen Registry-Wert als KeyPath; passend zur Installation für alle unter HKLM.
+      ICE38/ICE43/ICE57 halten ProgramMenuFolder unabhängig von ALLUSERS für ein Benutzerprofil und
+      verlangen HKCU; sie sind deshalb im wixproj unterdrückt (HKMU scheitert an ICE57, HKCU hinge den
+      Zustand der Komponente an das Profil des installierenden Admins).
+    -->
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Component Id="ConfigShortcut">
+        <Shortcut Id="ConfigShortcut"
+                  Name="!(loc.ConfigShortcutName)"
+                  Description="!(loc.ConfigShortcutDescription)"
+                  Target="[INSTALLFOLDER]pds-config.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKLM"
+                       Key="Software\Siemens LPD\EPLAN Panel Data Service"
+                       Name="ConfigShortcut"
+                       Type="integer"
+                       Value="1"
+                       KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <!-- Alles Übrige der Payload: node\, app\, tools\, licenses\, caddy.exe -->
+    <ComponentGroup Id="PayloadFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(PayloadDir)\**">
+        <Exclude Files="$(PayloadDir)\pds.exe" />
+        <Exclude Files="$(PayloadDir)\pds-config.exe" />
+      </Files>
+    </ComponentGroup>
+
+    <!--
+      Einrichtung durch die EXE selbst (Datenordner, ACL, App-Secret, Ereignisquelle, Firewall-Regel).
+      Pfad über [INSTALLFOLDER] statt [#ServiceExe]: Bei der Deinstallation ist [#…] bereits leer.
+      WixQuietExec schreibt Befehlszeile und Ausgabe ins MSI-Log; beides enthält keine Secrets.
+    -->
+    <SetProperty Id="SetupInstall"
+                 Value='"[INSTALLFOLDER]pds.exe" setup install'
+                 Before="SetupInstall"
+                 Sequence="execute" />
+    <CustomAction Id="SetupInstall"
+                  BinaryRef="Wix4UtilCA_X64"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <!--
+      Rollback zu SetupInstall (steht davor, damit es auch läuft, wenn SetupInstall selbst scheitert):
+      Bricht die Installation ab, nimmt `setup uninstall` Firewall-Regel und Ereignisquelle wieder weg;
+      die Daten bleiben wie bei jeder Deinstallation ohne REMOVE_DATA. Nicht beim Upgrade: Dort stellt
+      der Rollback die alte Version wieder her, und die braucht Regel und Quelle weiter. Auch nicht bei
+      Reparatur oder Änderung (Installed): Dort gehören Regel und Quelle zur weiter installierten Version.
+    -->
+    <SetProperty Id="SetupInstallRollback"
+                 Value='"[INSTALLFOLDER]pds.exe" setup uninstall'
+                 Before="SetupInstallRollback"
+                 Sequence="execute" />
+    <CustomAction Id="SetupInstallRollback"
+                  BinaryRef="Wix4UtilCA_X64"
+                  DllEntry="WixQuietExec64"
+                  Execute="rollback"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!--
+      Wiederherstellung: Neustart nach 10 s / 60 s / 5 min, Zähler-Reset nach 24 h. Nicht über
+      ServiceConfigFailureActions: Laut Windows-Installer-Doku (MsiConfigureServices) funktioniert
+      MsiServiceConfigFailureActions nicht wie erwartet; Microsoft empfiehlt sc.exe per Custom Action.
+    -->
+    <SetProperty Id="ConfigureServiceRecovery"
+                 Value='"[System64Folder]sc.exe" failure pds reset= 86400 actions= restart/10000/restart/60000/restart/300000'
+                 Before="ConfigureServiceRecovery"
+                 Sequence="execute" />
+    <CustomAction Id="ConfigureServiceRecovery"
+                  BinaryRef="Wix4UtilCA_X64"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <!-- Deinstallation darf nicht an Firewall oder Ereignisprotokoll scheitern und zurückrollen -->
+    <SetProperty Id="SetupUninstall"
+                 Value='"[INSTALLFOLDER]pds.exe" setup uninstall'
+                 Before="SetupUninstall"
+                 Sequence="execute" />
+    <CustomAction Id="SetupUninstall"
+                  BinaryRef="Wix4UtilCA_X64"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <SetProperty Id="SetupUninstallData"
+                 Value='"[INSTALLFOLDER]pds.exe" setup uninstall --remove-data'
+                 Before="SetupUninstallData"
+                 Sequence="execute" />
+    <CustomAction Id="SetupUninstallData"
+                  BinaryRef="Wix4UtilCA_X64"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- msiexec /x … REMOVE_DATA=1 löscht zusätzlich %ProgramData%\EPLAN Panel Data Service -->
+    <Property Id="REMOVE_DATA" Secure="yes" />
+
+    <!--
+      WebView2-Runtime (für die Konfigurationsoberfläche): nur installieren, wenn sie fehlt. Danach hält
+      Edge Update sie aktuell. Ein Fehlschlag bricht die Installation nicht ab, damit Dienst und CLI auch
+      dort installierbar bleiben, wo WebView2 nicht läuft (z. B. Server Core).
+    -->
+    <Property Id="WEBVIEW2_VERSION">
+      <RegistrySearch Id="WebView2Version"
+                      Root="HKLM"
+                      Key="SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
+                      Name="pv"
+                      Type="raw"
+                      Bitness="always64" />
+    </Property>
+    <Binary Id="WebView2Installer" SourceFile="$(WebView2Installer)" />
+    <CustomAction Id="InstallWebView2"
+                  BinaryRef="WebView2Installer"
+                  ExeCommand="/silent /install"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <InstallExecuteSequence>
+      <!-- Vor StartServices: Der Dienst braucht beim Start den gesicherten Datenordner und das App-Secret -->
+      <Custom Action="SetupInstallRollback"
+              Before="SetupInstall"
+              Condition='NOT Installed AND NOT WIX_UPGRADE_DETECTED' />
+      <Custom Action="SetupInstall"
+              After="InstallServices"
+              Condition='NOT REMOVE~="ALL"' />
+      <Custom Action="ConfigureServiceRecovery"
+              After="SetupInstall"
+              Condition='NOT REMOVE~="ALL"' />
+      <!-- Nicht beim Upgrade: Dort entfernt die alte Version sich selbst, Regel und Daten bleiben -->
+      <Custom Action="SetupUninstall"
+              Before="RemoveFiles"
+              Condition='REMOVE~="ALL" AND NOT UPGRADINGPRODUCTCODE AND REMOVE_DATA&lt;&gt;"1"' />
+      <Custom Action="SetupUninstallData"
+              Before="RemoveFiles"
+              Condition='REMOVE~="ALL" AND NOT UPGRADINGPRODUCTCODE AND REMOVE_DATA="1"' />
+      <Custom Action="InstallWebView2"
+              Before="InstallFinalize"
+              Condition='NOT REMOVE~="ALL" AND (NOT WEBVIEW2_VERSION OR WEBVIEW2_VERSION="0.0.0.0")' />
+    </InstallExecuteSequence>
+
+    <ui:WixUI Id="WixUI_Minimal" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(sys.SOURCEFILEDIR)License.rtf" />
+  </Package>
+</Wix>

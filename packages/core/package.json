@@ -1,0 +1,34 @@
+{
+  "name": "@pds/core",
+  "private": true,
+  "type": "module",
+  "main": "./nuxt.config.ts",
+  "exports": {
+    ".": "./nuxt.config.ts",
+    "./database": "./server/database/index.ts",
+    "./mcp": "./server/mcp/index.ts",
+    "./testing": "./tests/helpers/test-db.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@nuxt/ui": "^4.13.0",
+    "kysely": "^0.29.9",
+    "nuxt-auth-utils": "^0.6.2",
+    "openid-client": "^6.9.0",
+    "tarn": "^3.1.2",
+    "tedious": "^20.3.9",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@nuxt/eslint-config": "^1.17.0",
+    "@types/node": "^24.10.0",
+    "eslint": "^10.15.0",
+    "nuxt": "^4.6.4",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.1"
+  }
+}

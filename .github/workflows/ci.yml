@@ -1,0 +1,82 @@
+# JavaScript-Arbeitsbereich (apps/*, packages/*, windows/node-tools, windows/pds-config/ui): Lint, Typprüfung
+# und Tests. Die Integrationstests laufen zweimal: gegen den SQL-Server-Container unten (jede Testdatei legt ihre
+# eigene Datenbank an) und gegen SQLite (Dateien im Temp-Ordner). E2E (Playwright mit Dex und glauth) läuft lokal mit `pnpm test:e2e`, Rust und MSI in windows.yml.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+# Ein neuer Push bricht den laufenden Lauf derselben Ref ab
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: lint, typecheck, test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # Wegwerf-Passwort nur für CI
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: 'Y'
+          MSSQL_PID: Developer
+          MSSQL_SA_PASSWORD: PdsCi-Sa-2026
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P PdsCi-Sa-2026 -Q 'SELECT 1' -b -o /dev/null"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 40
+          --health-start-period 20s
+    env:
+      # Statt des Entwicklungs-Servers auf 1435 (packages/core/tests/helpers/test-db.ts)
+      TEST_DATABASE_URL: mssql://sa:PdsCi-Sa-2026@localhost:1433/master?trustServerCertificate=true
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      # pnpm in der Version aus `packageManager` der Root-package.json
+      - name: pnpm über Corepack
+        run: |
+          corepack enable
+          pnpm --version
+
+      - name: pnpm-Store ermitteln
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v6
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+
+      # Führt auch `nuxt prepare` (postinstall von apps/web) aus, das die Typprüfung braucht
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typprüfung
+        run: pnpm typecheck
+
+      - name: Tests (SQL Server)
+        run: pnpm test
+
+      - name: Tests (SQLite)
+        run: pnpm test:sqlite

@@ -1,0 +1,45 @@
+# Test-OIDC-Provider für `pnpm dev` und die E2E-Tests (ersetzt lokal Microsoft Entra ID)
+issuer: http://localhost:5558/dex
+
+storage:
+  type: memory
+
+web:
+  http: 0.0.0.0:5556
+
+oauth2:
+  skipApprovalScreen: true
+
+staticClients:
+  - id: pds
+    name: EPLAN Panel Data Service
+    secret: pds-dev-secret
+    redirectURIs:
+      - http://localhost:3400/auth/callback
+      - http://localhost:3500/auth/callback
+
+connectors:
+  - type: ldap
+    id: ldap
+    name: Test-LDAP
+    config:
+      host: glauth:3893
+      insecureNoSSL: true
+      bindDN: cn=service,ou=svcaccts,dc=lpd,dc=test
+      bindPW: service-pass
+      usernamePrompt: Benutzername
+      userSearch:
+        baseDN: dc=lpd,dc=test
+        filter: "(objectClass=posixAccount)"
+        username: cn
+        idAttr: uidNumber
+        emailAttr: mail
+        nameAttr: givenName
+        preferredUsernameAttr: cn
+      groupSearch:
+        baseDN: dc=lpd,dc=test
+        filter: "(objectClass=posixGroup)"
+        userMatchers:
+          - userAttr: cn
+            groupAttr: memberUid
+        nameAttr: ou

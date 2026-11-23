@@ -1,0 +1,100 @@
+{
+  "auth": {
+    "appName": "Panel Data Service",
+    "login": {
+      "title": "Anmelden",
+      "subtitle": "Einsatzplanung für Auszubildende",
+      "button": "Mit {provider} anmelden",
+      "hint": "Der Zugang wird über Microsoft Entra ID gesteuert. Nach der ersten Anmeldung ordnet dich ein Admin den passenden Standorten zu."
+    },
+    "logout": "Abmelden",
+    "adminBadge": "Admin",
+    "colorMode": {
+      "light": "Hell",
+      "dark": "Dunkel",
+      "system": "System"
+    }
+  },
+  "errors": {
+    "unknown": "Unerwarteter Fehler. Bitte erneut versuchen.",
+    "unauthorized": "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.",
+    "forbidden": "Dafür fehlen dir die Rechte.",
+    "not_found": "Nicht gefunden.",
+    "invalid_input": "Die Eingaben sind ungültig.",
+    "invalid_id": "Ungültige ID.",
+    "sso_failed": "Die Anmeldung ist fehlgeschlagen. Bitte erneut versuchen.",
+    "sso_denied": "Die Anmeldung wurde vom Identity-Provider abgelehnt.",
+    "sso_unavailable": "Der Anmeldedienst ist gerade nicht erreichbar.",
+    "login_expired": "Der Anmeldevorgang ist abgelaufen. Bitte erneut anmelden.",
+    "oidc_not_configured": "Die Anmeldung ist nicht konfiguriert.",
+    "account_unknown": "Dieses Konto ist nicht bekannt.",
+    "payload_too_large": "Die Anfrage ist zu groß.",
+    "unsupported_media_type": "Ungültiges Anfrageformat.",
+    "oauth_invalid_request": "Die Anfrage des Programms ist ungültig.",
+    "oauth_unknown_client": "Dieses Programm ist nicht registriert.",
+    "oauth_invalid_redirect": "Die Rücksprung-Adresse des Programms ist nicht registriert.",
+    "oauth_invalid_resource": "Das Programm möchte auf einen anderen Dienst zugreifen als diesen.",
+    "reauth_required": "Bitte melde dich erneut an, um den Zugriff zu erlauben."
+  },
+  "mcp": {
+    "access": {
+      "read": "Nur lesen",
+      "write": "Lesen und ändern"
+    },
+    "accessHint": {
+      "read": "Daten ansehen und auswerten. Es wird nichts verändert.",
+      "write": "Zusätzlich Daten ändern, soweit deine Rechte reichen."
+    },
+    "assistants": {
+      "title": "KI-Assistenten",
+      "intro": "Verbinde Claude Code mit {app}, um Fragen zu den Daten zu stellen oder Aufgaben erledigen zu lassen. Der Assistent arbeitet in deinem Namen und hat nie mehr Rechte als du.",
+      "connect": {
+        "title": "Claude Code verbinden",
+        "description": "Einmal einrichten, danach in Claude Code anmelden.",
+        "step1": "Führe diesen Befehl in deinem Terminal aus:",
+        "step2": "Öffne in Claude Code {command}, wähle den Server {server} und dann „Authenticate“.",
+        "step3": "Bestätige im Browser, was der Assistent darf.",
+        "copy": "Befehl kopieren",
+        "copied": "Kopiert",
+        "lifetime": "Eine Verbindung endet spätestens 12 Stunden nach deiner Anmeldung in dieser Anwendung – wie die Anmeldung selbst. Danach öffnest du in Claude Code erneut {command} und wählst „Authenticate“."
+      },
+      "privacy": {
+        "title": "Datenschutz",
+        "text": "Was der Assistent liest, wird an den Anbieter der KI übermittelt. Verwende nur Assistenten, die dein Unternehmen freigegeben hat, und rufe nur Daten ab, die du dort verarbeiten darfst."
+      },
+      "connections": {
+        "title": "Deine Verbindungen",
+        "description": "Programme, die in deinem Namen auf {app} zugreifen dürfen.",
+        "empty": "Keine Verbindungen",
+        "emptyHint": "Sobald du ein Programm zulässt, erscheint es hier.",
+        "connectedAt": "Verbunden",
+        "lastUsed": "Zuletzt genutzt",
+        "neverUsed": "Noch nicht genutzt",
+        "expiresAt": "Läuft ab",
+        "disconnect": "Trennen",
+        "disconnectTitle": "Verbindung trennen?",
+        "disconnectQuestion": "{name} verliert sofort den Zugriff. Du kannst das Programm danach jederzeit neu verbinden.",
+        "disconnected": "Verbindung getrennt"
+      }
+    }
+  },
+  "oauth": {
+    "consent": {
+      "title": "Zugriff erlauben?",
+      "intro": "Ein Programm möchte sich mit {app} verbinden und in deinem Namen arbeiten. Es hat nie mehr Rechte als du.",
+      "client": "Programm",
+      "clientHint": "Der Name wird vom Programm selbst angegeben und nicht geprüft.",
+      "redirectHost": "Danach zurück zu",
+      "redirectHint": "Nach deiner Entscheidung springt der Browser zu dieser Adresse.",
+      "user": "Angemeldet als",
+      "access": "Zugriffsstufe",
+      "requested": "Das Programm hat „{level}“ angefragt. Vorausgewählt ist immer die niedrigste Stufe.",
+      "allow": "Zulassen",
+      "deny": "Ablehnen",
+      "footer": "Du kannst die Verbindung jederzeit unter „KI-Assistenten“ trennen. Sie endet von selbst spätestens 12 Stunden nach deiner Anmeldung.",
+      "errorTitle": "Zugriff nicht möglich",
+      "errorHint": "Es wurde nichts freigegeben. Starte die Anmeldung im Programm erneut.",
+      "reauth": "Erneut anmelden"
+    }
+  }
+}

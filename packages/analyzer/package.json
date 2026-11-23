@@ -1,0 +1,20 @@
+{
+  "name": "@pds/analyzer",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./fixtures/*": "./fixtures/*"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@nuxt/eslint-config": "^1.17.0",
+    "eslint": "^10.15.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.1"
+  }
+}
