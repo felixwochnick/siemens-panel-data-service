@@ -1,0 +1,170 @@
+{
+  "app": {
+    "name": "Panel Data Service",
+    "nav": {
+      "overview": "Übersicht",
+      "projects": "Projekte",
+      "settings": "Einstellungen",
+      "logs": "Protokolle",
+      "assistants": "KI-Assistenten"
+    },
+    "workerStates": {
+      "disabled": "Kein Worker eingestellt",
+      "connecting": "Verbindet …",
+      "connected": "Verbunden",
+      "disconnected": "Worker nicht erreichbar"
+    },
+    "refresh": "Aktualisieren",
+    "via": {
+      "ui": "Web-App",
+      "mcp": "KI-Assistent"
+    },
+    "error": {
+      "home": "Zur Übersicht",
+      "forbidden": {
+        "title": "Kein Zugriff",
+        "text": "Diese Seite ist nur für Administratoren. Projekte und Ergebnisse stehen dir weiterhin offen."
+      },
+      "notFound": {
+        "title": "Seite nicht gefunden",
+        "text": "Die Adresse gibt es nicht (mehr). Vielleicht wurde das Projekt oder die Analyse gelöscht."
+      },
+      "general": {
+        "title": "Etwas ist schiefgegangen",
+        "text": "Bitte lade die Seite neu. Wenn der Fehler bleibt, wende dich an die Administratoren."
+      }
+    }
+  },
+  "overview": {
+    "title": "Übersicht",
+    "issues": {
+      "title": "Die Einstellungen sind unvollständig",
+      "unsaved": "Die Einstellungen wurden noch nie gespeichert (es gelten die Standardwerte).",
+      "unreadableTitle": "Gespeichertes Passwort nicht lesbar",
+      "unreadableText": "Das Passwort des Netzlaufwerks lässt sich mit dem aktuellen App-Geheimnis nicht entschlüsseln. Bitte in den Einstellungen neu eingeben.",
+      "fix": "Zu den Einstellungen"
+    },
+    "worker": {
+      "title": "EPLAN-Worker",
+      "eplan": "EPLAN",
+      "busy": "beschäftigt",
+      "version": "Version",
+      "transports": {
+        "pipe": "Dienst (Named Pipe)",
+        "spawn": "Prozess (Entwicklung)"
+      },
+      "since": "Seit",
+      "restart": "Worker neu starten",
+      "restartTitle": "EPLAN-Worker neu starten?",
+      "restartQuestion": "EPLAN wird beendet und beim nächsten Auftrag neu gestartet. Eine laufende Analyse scheitert dabei.",
+      "restarted": "Der EPLAN-Worker wird neu gestartet.",
+      "hint": {
+        "disabled": "Kein EPLAN-Worker eingestellt",
+        "disconnected": "Der EPLAN-Worker ist nicht erreichbar",
+        "text": "Hochgeladene Projekte und gewählte Analysen warten in der Warteschlange, bis der Worker wieder verbunden ist."
+      }
+    },
+    "queue": {
+      "title": "Warteschlange",
+      "waiting": "Wartend: {count}",
+      "since": "seit {duration}",
+      "idle": "Gerade läuft keine Analyse.",
+      "more": "und {count} weitere"
+    },
+    "schedule": {
+      "title": "Zeitplan",
+      "on": "An",
+      "off": "Aus",
+      "toggle": "Zeitplan ein- oder ausschalten",
+      "invalid": "Der Cron-Ausdruck oder die Zeitzone ist ungültig.",
+      "notActive": "Der Zeitplan ist eingeschaltet, aber in diesem Prozess nicht eingeplant (Einstellungen prüfen).",
+      "next": "Nächste Läufe",
+      "offHint": "Ausgeschaltet: Projekte im Projektordner werden nur auf Wunsch analysiert.",
+      "edit": "Zeitplan bearbeiten",
+      "switchedOn": "Zeitplan eingeschaltet",
+      "switchedOff": "Zeitplan ausgeschaltet"
+    },
+    "recent": {
+      "title": "Zuletzt analysiert",
+      "all": "Alle Projekte",
+      "summary": "{connections} Verbindungen, {cables} Kabel",
+      "none": "Noch keine Analysen",
+      "noneHint": "Lade ein Projektarchiv (.zw1) hoch oder wähle Projekte aus dem Projektordner."
+    },
+    "audit": {
+      "title": "Letzte Änderungen",
+      "empty": "Noch keine Änderungen.",
+      "viaMcp": "KI-Assistent"
+    },
+    "database": "Datenbank: {name}",
+    "databases": {
+      "mssql": "SQL Server",
+      "sqlite": "SQLite"
+    }
+  },
+  "auth": {
+    "appName": "Panel Data Service",
+    "login": {
+      "subtitle": "Verbindungen, Kabel, Schirme und Texte aus EPLAN-Projekten",
+      "hint": "Der Zugang wird über die Anmeldung deines Unternehmens gesteuert."
+    }
+  },
+  "mcp": {
+    "access": {
+      "write": "Lesen und Analysen starten"
+    },
+    "accessHint": {
+      "read": "Projekte, Analysen und Ergebnisse ansehen und auswerten. Es wird nichts verändert.",
+      "write": "Zusätzlich Analysen starten; Admins auch Zeitplan und Einstellungen ändern (ohne Passwörter)."
+    },
+    "assistants": {
+      "connect": {
+        "lifetime": "Eine Verbindung gilt 30 Tage. Danach öffnest du in Claude Code erneut {command} und wählst „Authenticate“."
+      }
+    }
+  },
+  "audit": {
+    "settings_updated": "Einstellungen geändert",
+    "settings_updated_fields": "Einstellungen geändert: {fields}",
+    "scheduler_toggled_on": "Zeitplan eingeschaltet",
+    "scheduler_toggled_off": "Zeitplan ausgeschaltet",
+    "project_uploaded": "Projekt {fileName} hochgeladen",
+    "analysis_started": "Analyse #{analysisId} gestartet",
+    "analysis_deleted": "Analyse #{analysisId} gelöscht",
+    "project_deleted": "Projekt {name} gelöscht",
+    "worker_restarted": "EPLAN-Worker neu gestartet",
+    "unknown": "Änderung ({action})",
+    "system": "System"
+  },
+  "errors": {
+    "invalid_settings": "Einige Einstellungen sind ungültig. Bitte die markierten Felder prüfen.",
+    "settings_incomplete": "Die Einstellungen sind unvollständig. Bitte zuerst die Einstellungen ergänzen.",
+    "secret_required": "Ein gespeichertes Passwort gilt nur für seine bisherige Freigabe und seinen Benutzer. Nach einer Änderung bitte das Passwort neu eingeben.",
+    "secret_unreadable": "Das gespeicherte Passwort des Netzlaufwerks ist nicht mehr lesbar. Bitte in den Einstellungen neu eingeben.",
+    "analysis_already_queued": "Für dieses Projekt wartet oder läuft bereits eine Analyse.",
+    "analysis_running": "Die Analyse läuft gerade. Bitte warte, bis sie beendet ist.",
+    "analysis_not_succeeded": "Diese Analyse hat keine Ergebnisse (sie ist nicht erfolgreich abgeschlossen).",
+    "analysis_not_running": "Die Analyse läuft nicht mehr.",
+    "no_current_analysis": "Dieses Projekt wurde noch nicht erfolgreich analysiert.",
+    "project_or_analysis_required": "Bitte ein Projekt oder eine Analyse angeben.",
+    "project_or_folder_path_required": "Bitte entweder eine Projekt-ID oder einen Pfad im Projektordner angeben.",
+    "folder_not_configured": "Es ist kein Projektordner eingestellt.",
+    "folder_not_found": "Der Projektordner wurde nicht gefunden.",
+    "folder_unreadable": "Der Projektordner kann nicht gelesen werden.",
+    "folder_project_not_found": "Das Projekt wurde im Projektordner nicht gefunden.",
+    "invalid_path": "Der Pfad ist ungültig. Erlaubt sind Pfade zu .elk- oder .zw1-Dateien relativ zum Projektordner.",
+    "edb_missing": "Zur .elk-Datei fehlt der gleichnamige .edb-Ordner.",
+    "network_drive_unsupported": "Netzlaufwerke werden nur unter Windows unterstützt.",
+    "network_drive_failed": "Das Netzlaufwerk konnte nicht verbunden werden.",
+    "drive_unavailable": "Das Netzlaufwerk ist nach dem Verbinden nicht erreichbar.",
+    "upload_invalid_type": "Bitte ein Projektarchiv im Format .zw1 hochladen.",
+    "upload_invalid_name": "Der Dateiname ist ungültig.",
+    "upload_too_large": "Die Datei ist zu groß (höchstens {maxMb} MB).",
+    "upload_name_too_long": "Der Projektname ist zu lang (höchstens {max} Zeichen); bitte die Datei umbenennen.",
+    "upload_empty": "Die Datei ist leer.",
+    "worker_not_configured": "Es ist kein EPLAN-Worker eingestellt.",
+    "worker_unreachable": "Der EPLAN-Worker ist nicht erreichbar.",
+    "log_dir_not_configured": "Protokolle sind nur im Windows-Dienst verfügbar (NUXT_LOG_DIR fehlt).",
+    "shutting_down": "Der Dienst wird gerade beendet."
+  }
+}

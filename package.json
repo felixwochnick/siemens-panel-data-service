@@ -1,0 +1,32 @@
+{
+  "name": "pds",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @pds/web dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "lint:fix": "pnpm -r lint --fix",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:sqlite": "TEST_DATABASE=sqlite pnpm -r test",
+    "db:up": "docker compose -f docker/docker-compose.dev.yml up -d --wait mssql && docker compose -f docker/docker-compose.dev.yml run --rm mssql-init",
+    "db:down": "docker compose -f docker/docker-compose.dev.yml --profile sso down",
+    "sso:up": "pnpm db:up && docker compose -f docker/docker-compose.dev.yml --profile sso up -d --wait glauth dex",
+    "test:e2e": "playwright test",
+    "test:e2e:sqlite": "E2E_DATABASE=sqlite playwright test"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@pds/core": "workspace:*",
+    "@playwright/test": "^1.65.1",
+    "kysely": "^0.29.9",
+    "read-excel-file": "^9.3.20",
+    "tsx": "^4.23.15"
+  }
+}

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 26.0.2, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" fill="currentColor" baseProfile="tiny" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px"
+	 y="0px" viewBox="0 0 24 24" overflow="visible" xml:space="preserve">
+<g id="Bounding_box">
+	<rect fill="none" width="24" height="24"/>
+</g>
+<g id="Icon">
+	<g>
+		<path fill-rule="evenodd" d="M13,2H2v20h20V11h-9V2z M11,20H4v-7h7V20z M11,11H4V4h7V11z M20,13v7h-7v-7H20z"/>
+		<path fill-rule="evenodd" d="M16,2v6h6V2H16z M20,6h-2V4h2V6z"/>
+	</g>
+</g>
+<g id="Kommentare" display="none">
+	<polyline display="inline" fill="none" stroke="#FFFFFF" stroke-miterlimit="10" points="-57,32 -8,32 -8,-8 96,-8 	"/>
+</g>
+</svg>

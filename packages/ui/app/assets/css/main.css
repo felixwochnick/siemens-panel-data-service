@@ -1,0 +1,356 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/* Layer-Komponenten, Konfiguration und App-Seiten für Tailwind sichtbar machen */
+@source "../../";
+
+/* Siemens-Schriften (liegen in public/fonts des UI-Layers) */
+@font-face {
+    font-family: 'Siemens Sans';
+    src: url('/fonts/siemens-sans-pro.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Siemens Sans';
+    src: url('/fonts/siemens-sans-pro-italic.woff2') format('woff2');
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Siemens Sans';
+    src: url('/fonts/siemens-sans-pro-semibold.woff2') format('woff2');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Siemens Sans';
+    src: url('/fonts/siemens-sans-pro-semibold-italic.woff2') format('woff2');
+    font-weight: 600;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Siemens Sans';
+    src: url('/fonts/siemens-sans-pro-bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Siemens Sans';
+    src: url('/fonts/siemens-sans-pro-bold-italic.woff2') format('woff2');
+    font-weight: 700;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Siemens Slab';
+    src: url('/fonts/siemens-slab-pro.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Siemens Slab';
+    src: url('/fonts/siemens-slab-pro-italic.woff2') format('woff2');
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Siemens Slab';
+    src: url('/fonts/siemens-slab-pro-semibold.woff2') format('woff2');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Siemens Slab';
+    src: url('/fonts/siemens-slab-pro-semibold-italic.woff2') format('woff2');
+    font-weight: 600;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Siemens Slab';
+    src: url('/fonts/siemens-slab-pro-bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Siemens Slab';
+    src: url('/fonts/siemens-slab-pro-bold-italic.woff2') format('woff2');
+    font-weight: 700;
+    font-style: italic;
+    font-display: swap;
+}
+
+@theme static {
+    /* SIEMENS primary colors */
+    --color-siemens-primary-petrol: #009999;
+    --color-siemens-primary-bold-green: #00ffb9;
+    --color-siemens-primary-bold-blue: #00e6dc;
+    --color-siemens-primary-deep-blue: #000028;
+    --color-siemens-primary-light-sand: #f3f3f0;
+
+    /* SIEMENS secondary colors */
+    --color-siemens-secondary-deep-blue-85: #262648;
+    --color-siemens-secondary-deep-blue-80: #333353;
+    --color-siemens-secondary-deep-blue-70: #4c4c68;
+    --color-siemens-secondary-deep-blue-60: #66667e;
+    --color-siemens-secondary-deep-blue-55: #737389;
+    --color-siemens-secondary-deep-blue-50: #7d8099;
+    --color-siemens-secondary-deep-blue-40: #9999a9;
+    --color-siemens-secondary-deep-blue-30: #b3b3be;
+    --color-siemens-secondary-deep-blue-20: #ccccd4;
+    --color-siemens-secondary-deep-blue-10: #e5e5e9;
+    --color-siemens-secondary-deep-blue-8: #ebebee;
+    --color-siemens-secondary-dark-sand: #aaaa96;
+    --color-siemens-secondary-soft-sand: #c5c5b8;
+    --color-siemens-secondary-bright-sand: #dfdfd9;
+    --color-siemens-secondary-dark-blue: #00557c;
+    --color-siemens-secondary-blue: #0087be;
+    --color-siemens-secondary-soft-blue: #00bedc;
+    --color-siemens-secondary-dark-green: #00646e;
+    --color-siemens-secondary-green: #00af8e;
+    --color-siemens-secondary-soft-green: #00d7a0;
+    --color-siemens-secondary-dark-purple: #553ba3;
+    --color-siemens-secondary-purple: #805cff;
+    --color-siemens-secondary-soft-purple: #b4a8ff;
+
+    /* SIEMENS dark theme */
+    --color-siemens-interaction-dark-interactive-coral: #00cccc;
+    --color-siemens-interaction-dark-interactive-coral-80-db: #00a3ab;
+    --color-siemens-interaction-dark-interactive-coral-50-db: #007082;
+    --color-siemens-interaction-dark-interactive-coral-20-db: #002949;
+    --color-siemens-interaction-dark-interactive-coral-12-db: #00183b;
+    --color-siemens-interaction-dark-interactive-coral-8-db: #001034;
+    --color-siemens-interaction-dark-bold-green: #66ffd5;
+    --color-siemens-interaction-dark-bold-green-90-db: #00e5aa;
+    --color-siemens-interaction-dark-bold-green-65-db: #00a686;
+    --color-siemens-interaction-dark-bold-green-60-db: #00997f;
+    --color-siemens-interaction-dark-bold-green-55-db: #008c78;
+    --color-siemens-interaction-dark-bold-green-45-db: #007369;
+    --color-siemens-interaction-dark-bold-green-12-db: #001f39;
+    --color-siemens-interaction-dark-dark-red: #331131;
+    --color-siemens-interaction-dark-dark-yellow-18-db: #4b433a;
+    --color-siemens-interaction-dark-light-green-40: #c5ffef;
+    --color-siemens-interaction-dark-focus-blue-30-db: #062c63;
+
+    /* SIEMENS focus border */
+    --color-siemens-interaction-focus-border: #1491eb;
+
+    /* SIEMENS light theme */
+    --color-siemens-interaction-light-interactive-blue: #007993;
+    --color-siemens-interaction-light-teal: #005159;
+    --color-siemens-interaction-light-teal-90: #196269;
+    --color-siemens-interaction-light-teal-84: #296d74;
+    --color-siemens-interaction-light-teal-80: #33747a;
+    --color-siemens-interaction-light-teal-74: #427e84;
+    --color-siemens-interaction-light-teal-64: #5c9095;
+    --color-siemens-interaction-light-light-red: #fcccd7;
+    --color-siemens-interaction-light-light-yellow: #fff3c6;
+    --color-siemens-interaction-light-interactive-cyan-8: #ebf7f8;
+    --color-siemens-interaction-light-bold-green-18: #d1fff2;
+    --color-siemens-interaction-light-light-green: #62eec7;
+    --color-siemens-interaction-light-focus-blue-20: #d0e9fb;
+
+    /* SIEMENS Feedback dark theme */
+    --color-siemens-feedback-dark-blue: #00bedc;
+    --color-siemens-feedback-dark-green: #01d65a;
+    --color-siemens-feedback-dark-yellow: #ffd732;
+    --color-siemens-feedback-dark-orange: #ff9000;
+    --color-siemens-feedback-dark-red: #ff2640;
+    --color-siemens-feedback-dark-red-text: #ff7687;
+
+    /* SIEMENS Feedback light theme */
+    --color-siemens-feedback-light-blue: #007eb1;
+    --color-siemens-feedback-light-green: #01893a;
+    --color-siemens-feedback-light-green-text: #018136;
+    --color-siemens-feedback-light-yellow: #e9c32a;
+    --color-siemens-feedback-light-orange: #e96401;
+    --color-siemens-feedback-light-red: #d72339;
+    --color-siemens-feedback-light-red-text: #b81e31;
+
+    /* SIEMENS Color Palette */
+    --color-siemens-primary-400: var(
+        --color-siemens-interaction-dark-interactive-coral
+    );
+    --color-siemens-primary-500: var(
+        --color-siemens-interaction-light-interactive-blue
+    );
+}
+
+:root {
+    --font-sans: 'Siemens Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+    --ui-header-height: --spacing(16);
+
+    --ui-radius: 0;
+
+    --ui-text: var(--color-siemens-primary-deep-blue);
+
+    --ui-text-inverted: #fff;
+
+    --ui-bg: #fff;
+
+    --ui-color-siemens: var(
+        --color-siemens-interaction-light-interactive-blue
+    );
+
+    --ui-color-siemens-hover: var(--color-siemens-interaction-light-teal);
+
+    --ui-color-siemens-hover-background: var(
+        --color-siemens-interaction-light-bold-green-18
+    );
+
+    --ui-color-siemens-active: var(
+        --color-siemens-interaction-light-teal-90
+    );
+
+    --ui-color-siemens-disabled-background: var(
+        --color-siemens-secondary-deep-blue-10
+    );
+
+    --ui-color-siemens-disabled-text: var(
+        --color-siemens-secondary-deep-blue-40
+    );
+
+    --ui-color-input-field-background: var(
+        --color-siemens-interaction-light-interactive-cyan-8
+    );
+
+    --ui-color-input-field-border: var(
+        --color-siemens-secondary-deep-blue-70
+    );
+
+    --ui-color-input-field-error: var(--color-siemens-feedback-light-red);
+
+    --ui-color-input-field-error-background: var(--color-siemens-interaction-light-light-red);
+
+    /* Semantische Flächen/Texte (hell) – app.config.ts nutzt nur diese, damit der Dark Mode stimmt */
+    --ui-color-surface: #fff;
+    --ui-color-surface-border: var(--color-siemens-secondary-deep-blue-10);
+    --ui-color-surface-strong-border: var(--color-siemens-secondary-deep-blue-20);
+    --ui-color-row-hover: var(--color-siemens-secondary-deep-blue-8);
+    --ui-color-text-muted: var(--color-siemens-secondary-deep-blue-60);
+    --ui-color-text-subtle: var(--color-siemens-secondary-deep-blue-50);
+    --ui-color-text-faint: var(--color-siemens-secondary-deep-blue-40);
+    --ui-color-feedback-blue: var(--color-siemens-feedback-light-blue);
+    --ui-color-feedback-green: var(--color-siemens-feedback-light-green);
+    --ui-color-feedback-yellow: var(--color-siemens-feedback-light-yellow);
+    --ui-color-feedback-orange: var(--color-siemens-feedback-light-orange);
+    --ui-color-feedback-red: var(--color-siemens-feedback-light-red);
+    --ui-color-alert-info: var(--color-siemens-interaction-light-interactive-cyan-8);
+    --ui-color-alert-success: var(--color-siemens-interaction-light-bold-green-18);
+    --ui-color-alert-warning: var(--color-siemens-interaction-light-light-yellow);
+    --ui-color-alert-error: var(--color-siemens-interaction-light-light-red);
+}
+
+.dark {
+    --ui-text: var(--color-siemens-secondary-deep-blue-10);
+
+    --ui-text-inverted: var(--color-siemens-primary-deep-blue);
+
+    --ui-bg: var(--color-siemens-primary-deep-blue);
+
+    --ui-color-siemens: var(
+        --color-siemens-interaction-dark-interactive-coral
+    );
+
+    --ui-color-siemens-hover: var(
+        --color-siemens-primary-bold-green
+    );
+
+    --ui-color-siemens-hover-background: var(
+        --color-siemens-interaction-dark-bold-green-12-db
+    );
+
+    --ui-color-siemens-active: var(
+        --color-siemens-interaction-dark-interactive-coral-50-db
+    );
+
+    --ui-color-siemens-disabled-background: var(
+        --color-siemens-secondary-deep-blue-80
+    );
+
+    --ui-color-siemens-disabled-text: var(
+        --color-siemens-secondary-deep-blue-55
+    );
+
+    --ui-color-input-field-background: var(
+        --color-siemens-interaction-dark-interactive-coral-12-db
+    );
+
+    --ui-color-input-field-border: var(
+        --color-siemens-secondary-deep-blue-30
+    );
+
+    --ui-color-input-field-error: var(--color-siemens-feedback-dark-red);
+
+    --ui-color-input-field-error-background: var(--color-siemens-interaction-dark-dark-red);
+
+    --ui-color-surface: var(--color-siemens-secondary-deep-blue-85);
+    --ui-color-surface-border: var(--color-siemens-secondary-deep-blue-70);
+    --ui-color-surface-strong-border: var(--color-siemens-secondary-deep-blue-60);
+    --ui-color-row-hover: var(--color-siemens-secondary-deep-blue-85);
+    --ui-color-text-muted: var(--color-siemens-secondary-deep-blue-30);
+    --ui-color-text-subtle: var(--color-siemens-secondary-deep-blue-40);
+    --ui-color-text-faint: var(--color-siemens-secondary-deep-blue-50);
+    --ui-color-feedback-blue: var(--color-siemens-feedback-dark-blue);
+    --ui-color-feedback-green: var(--color-siemens-feedback-dark-green);
+    --ui-color-feedback-yellow: var(--color-siemens-feedback-dark-yellow);
+    --ui-color-feedback-orange: var(--color-siemens-feedback-dark-orange);
+    --ui-color-feedback-red: var(--color-siemens-feedback-dark-red-text);
+    --ui-color-alert-info: var(--color-siemens-interaction-dark-interactive-coral-12-db);
+    --ui-color-alert-success: var(--color-siemens-interaction-dark-bold-green-12-db);
+    --ui-color-alert-warning: var(--color-siemens-interaction-dark-dark-yellow-18-db);
+    --ui-color-alert-error: var(--color-siemens-interaction-dark-dark-red);
+}
+
+@layer components {
+    /* SIEMENS link styles for raw <a> elements and NuxtLink */
+    a:not([class]) {
+        color: var(--ui-color-siemens);
+        text-underline-offset: 2px;
+
+        &:hover {
+            color: var(--ui-color-siemens-hover);
+            text-decoration: underline;
+        }
+
+        &:active {
+            color: var(--ui-color-siemens-active);
+        }
+    }
+
+    /* SIEMENS focus ring: uniform across all interactive elements */
+    :focus-visible {
+        outline-color: var(--color-siemens-interaction-focus-border);
+        outline-style: solid;
+        outline-offset: 1px;
+        outline-width: 2px;
+    }
+
+    /* Remove Nuxt UI's default rounded corners globally (--ui-radius already handles most cases) */
+    [data-reka-collection-item],
+    [data-reka-menu-content] {
+        border-radius: 0 !important;
+    }
+}

@@ -1,0 +1,19 @@
+{
+  "logs": {
+    "title": "Protokolle",
+    "notConfigured": "Protokolle gibt es nur im Windows-Dienst",
+    "notConfiguredHint": "Der Dienst gibt der App den Ordner mit service.log, app.log und den Protokollen des EPLAN-Workers über NUXT_LOG_DIR mit. Hier läuft die App ohne diesen Ordner (zum Beispiel in der Entwicklung).",
+    "unreadable": "Der Protokollordner ist nicht lesbar",
+    "unreadableHint": "Bitte prüfen, ob der Ordner existiert und das Dienstkonto ihn lesen darf.",
+    "empty": "Keine Protokolldateien",
+    "file": "Datei",
+    "lines": "Zeilen",
+    "filter": "Text filtern",
+    "download": "Herunterladen",
+    "autoRefresh": "Automatisch aktualisieren",
+    "truncated": "Ältere Zeilen sind ausgeblendet.",
+    "noLines": "Keine Zeilen",
+    "noMatches": "Keine Zeilen mit „{filter}“",
+    "size": "{size}, geändert {at}"
+  }
+}

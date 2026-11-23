@@ -1,0 +1,57 @@
+[workspace]
+resolver = "3"
+members = [
+    "pds",
+    "pds-common",
+    "pds-config",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Gemeinsame Versionen: Die Crates erben sie mit `workspace = true`.
+[workspace.dependencies]
+assert_cmd = "2"
+base64 = "0.22"
+clap = { version = "4", features = ["derive"] }
+# `termination`: auch SIGTERM/SIGHUP beenden den Vordergrundbetrieb geordnet
+ctrlc = { version = "3", features = ["termination"] }
+file-rotate = "0.8"
+getrandom = "0.4"
+hex = "0.4"
+pds-common = { path = "pds-common" }
+p12-keystore = "0.4"
+p256 = { version = "0.14", default-features = false, features = ["arithmetic", "pkcs8", "std"] }
+p384 = { version = "0.14", default-features = false, features = ["arithmetic", "pkcs8", "std"] }
+pem = "4"
+percent-encoding = "2"
+pkcs1 = "0.8"
+pkcs8 = "0.11"
+rand = "0.10"
+rcgen = { version = "0.14", default-features = false, features = ["pem", "ring"] }
+rpassword = "7"
+rsa = "0.10"
+sec1 = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha1 = "0.11"
+# Konfigurations-UI; Tauri 2, nur unter Windows gebaut (siehe pds-config)
+tauri = "2"
+tauri-build = "2"
+tauri-plugin-dialog = "2"
+tempfile = "3"
+thiserror = "2"
+time = { version = "0.3", features = ["serde-well-known"] }
+toml = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "std"] }
+ts-rs = "12"
+# Ohne TLS; die Crates schalten TLS nur dort zu, wo es gebraucht wird (Windows: SChannel)
+ureq = { version = "3", default-features = false }
+# Features je Crate, damit jedes nur die Win32-Teile übersetzt, die es braucht.
+windows = "0.62"
+windows-service = "0.8"
+x509-parser = "0.18"
+zeroize = "1"

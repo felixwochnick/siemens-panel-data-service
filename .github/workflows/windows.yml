@@ -1,0 +1,423 @@
+# Windows-Betrieb: Rust-Prüfungen, MSI-Bau und Smoke-Test auf einem frischen Windows.
+# Läuft nur bei Änderungen unter windows/ bzw. an diesem Workflow, bei Release-Tags v* (Tags ignorieren
+# den Pfadfilter) und von Hand: Das Repository ist privat und Windows-Minuten zählen doppelt.
+# Lint, Typprüfung und Tests des JavaScript-Arbeitsbereichs: ci.yml.
+# Das MSI hier enthält keinen EPLAN-Worker (kein EPLAN auf dem Runner, build-payload.ps1 -SkipEplanWorker).
+name: Windows
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+    paths:
+      - 'windows/**'
+      - '.github/workflows/windows.yml'
+  workflow_dispatch:
+
+# Ein neuer Push bricht den laufenden Lauf derselben Ref ab
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  linux:
+    name: linux
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # SQL Server für die Integrationstests der node-tools (db-test, db-setup); Wegwerf-Passwort nur für CI
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: 'Y'
+          MSSQL_PID: Developer
+          MSSQL_SA_PASSWORD: PdsCi-Sa-2026
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P PdsCi-Sa-2026 -Q 'SELECT 1' -b -o /dev/null"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 40
+          --health-start-period 20s
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: windows
+
+      - name: cargo fmt --check
+        working-directory: windows
+        run: cargo fmt --check
+
+      - name: cargo clippy
+        working-directory: windows
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: cargo test
+        working-directory: windows
+        run: cargo test --workspace
+
+      # cargo test schreibt die ts-rs-Bindings neu; jede Abweichung heißt: nicht mit eingecheckt
+      - name: ts-rs-Bindings aktuell
+        run: |
+          git diff --exit-code
+          untracked="$(git status --porcelain --untracked-files=all)"
+          if [ -n "$untracked" ]; then
+            echo "$untracked"
+            echo "::error::Neue Dateien nach cargo test (ts-rs-Bindings nicht eingecheckt?)"
+            exit 1
+          fi
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: node-tools bauen
+        run: pnpm --filter @pds/node-tools build
+
+      # Gegen den SQL-Server-Container oben (legt eigene Testdatenbanken und Logins an)
+      - name: node-tools testen
+        env:
+          TEST_DATABASE_URL: mssql://sa:PdsCi-Sa-2026@localhost:1433/master?trustServerCertificate=true
+        run: pnpm --filter @pds/node-tools test
+
+      - name: Konfigurationsoberfläche testen
+        run: pnpm --filter @pds/config-ui test
+
+      # Die CLI mit dem echten Bündel (sonst ignoriert, weil es die gebauten node-tools braucht)
+      - name: CLI mit gebautem pds-tools.mjs
+        working-directory: windows
+        run: cargo test -p pds --test cli -- --ignored db_script_stdout_contains_setvar
+
+  # Die App (Nitro-Ausgabe, reines JavaScript ohne native Module) entsteht unter Linux wie im Docker-Image.
+  # Unter Windows gebaut übernimmt Nitro die Handler-Pfade aus packages/core/nuxt.config.ts
+  # (fileURLToPath ⇒ D:\…) ohne Escaping in die Importe; Node lehnt sie beim Start ab
+  # (ERR_UNSUPPORTED_ESM_URL_SCHEME, Lauf 44665165100). build-payload.ps1 weist solche Ausgaben ab.
+  app:
+    name: app
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: App bauen
+        run: pnpm --filter @pds/web build
+
+      # Mit versteckten Dateien: Nitro legt mehrfach vorhandene Pakete unter node_modules/.nitro ab
+      - uses: actions/upload-artifact@v7
+        with:
+          name: app-output
+          path: apps/web/.output
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  build:
+    name: build
+    needs: app
+    runs-on: windows-2022
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: pwsh
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      baseline: ${{ steps.version.outputs.baseline }}
+      artifact: ${{ steps.artifact.outputs.name }}
+    steps:
+      # Dateien wie im Repository (LF); Tests vergleichen Texte und Schnappschüsse byte-genau
+      - name: Zeilenenden nicht umwandeln
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: App aus dem Linux-Job übernehmen
+        uses: actions/download-artifact@v8
+        with:
+          name: app-output
+          path: apps/web/.output
+
+      # Vor cargo build/test: Tauri bettet ui/dist beim Übersetzen in pds-config.exe ein
+      - name: Konfigurationsoberfläche bauen
+        run: pnpm --filter @pds/config-ui build
+
+      - name: node-tools bauen
+        run: pnpm --filter @pds/node-tools build
+
+      # Unter Windows: Einstieg pds-entry.mjs, Bündel, Protokoll; db.test.ts braucht einen SQL Server
+      # und läuft im linux-Job
+      - name: node-tools testen (ohne SQL Server)
+        run: pnpm --filter @pds/node-tools exec vitest run --exclude tests/db.test.ts
+
+      # X.Y aus der Root-package.json, Z = Laufnummer; die Basisversion X.Y.0 dient dem Upgrade-Test
+      - name: Version
+        id: version
+        run: |
+          $root = Get-Content -Raw -LiteralPath package.json | ConvertFrom-Json
+          if ($root.version -notmatch '^(\d+)\.(\d+)\.\d+') {
+            throw "Unerwartete Version in package.json: $($root.version)"
+          }
+          $version = "$($Matches[1]).$($Matches[2]).$env:GITHUB_RUN_NUMBER"
+          $baseline = "$($Matches[1]).$($Matches[2]).0"
+          "PDS_VERSION=$version" >> $env:GITHUB_ENV
+          # Versionsressource der Konfigurations-EXE: tauri-build mischt TAURI_CONFIG in tauri.conf.json
+          "TAURI_CONFIG={`"version`":`"$version`"}" >> $env:GITHUB_ENV
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "baseline=$baseline" >> $env:GITHUB_OUTPUT
+          Write-Host "Version $version, Basisversion $baseline"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      # Auch nach einem Fehlschlag späterer Schritte sichern: Der kalte Build (Tauri) dauert sonst 15 min
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: windows
+          cache-on-failure: true
+
+      - name: cargo build --release
+        working-directory: windows
+        run: cargo build --release --workspace
+
+      # Mit den ignorierten Tests: Sie ändern den Rechner (Firewall, Ereignisprotokoll,
+      # LocalMachine\My) und brauchen Admin; der Runner ist beides egal bzw. gegeben.
+      # --no-fail-fast: alle Fehlschläge eines Laufs sehen, nicht nur die der ersten Testdatei
+      - name: cargo test (Windows, inkl. ignorierter Tests)
+        working-directory: windows
+        run: cargo test --workspace --no-fail-fast -- --include-ignored
+
+      - name: Downloads der Fremdkomponenten aus dem Cache
+        uses: actions/cache@v6
+        with:
+          path: windows/.vendor/downloads
+          key: vendor-${{ hashFiles('windows/vendor.json') }}
+
+      - name: Fremdkomponenten laden und prüfen
+        run: ./windows/scripts/fetch-vendor.ps1
+
+      # Caddy-JSON aller TLS-Modi mit dem mitgelieferten, hash-geprüften caddy.exe prüfen. Die Beispiele
+      # schreibt ein Rust-Beispiel (Testzertifikat, Platzhalter-EAB), kein Produktbefehl: Die echte
+      # Konfiguration enthält Secrets.
+      - name: Caddy-Konfiguration prüfen (caddy validate)
+        run: |
+          $samples = Join-Path $env:RUNNER_TEMP 'caddy-samples'
+          Push-Location windows
+          try {
+            cargo run --release -p pds-common --example render_samples -- $samples
+            if ($LASTEXITCODE -ne 0) { throw "render_samples endete mit $LASTEXITCODE" }
+          }
+          finally {
+            Pop-Location
+          }
+          $caddy = (Resolve-Path -LiteralPath windows/.vendor/caddy/caddy.exe).Path
+          $failed = @()
+          foreach ($mode in 'certificate', 'acme', 'internal', 'off') {
+            $file = Join-Path $samples "caddy-$mode.json"
+            Write-Host "::group::caddy validate ($mode)"
+            & $caddy validate --config $file
+            $code = $LASTEXITCODE
+            Write-Host '::endgroup::'
+            if ($code -ne 0) {
+              Write-Host "::error title=caddy validate::Modus ${mode}: Exit-Code $code"
+              $failed += $mode
+            }
+            else {
+              Write-Host "caddy validate ${mode}: gültig"
+            }
+          }
+          if ($failed.Count -gt 0) { throw "Ungültige Caddy-Konfiguration: $($failed -join ', ')" }
+
+      # Der Runner hat kein EPLAN: Payload ohne EPLAN-Worker (eplan\ fehlt im MSI, das Skript warnt per
+      # Annotation). Ein MSI mit Worker entsteht nur auf einem Rechner mit EPLAN (ohne -SkipEplanWorker).
+      - name: Payload zusammenstellen
+        run: ./windows/scripts/build-payload.ps1 -Configuration release -SkipEplanWorker
+
+      # Signierpfad einmal echt durchlaufen, auch ohne echtes Zertifikat: Wegwerf-Zertifikat erzeugen, als
+      # PFX mit Zufallspasswort ausgeben, wieder aus dem Speicher nehmen und eine Kopie damit signieren.
+      # Alles in einem Schritt: PFX und Passwort gehen weder über Step-Outputs noch über env: (beides
+      # stünde im Log), sondern nur über Variablen dieses Prozesses; die PFX-Datei liegt kurz in RUNNER_TEMP.
+      - name: Signierpfad mit Wegwerf-Zertifikat prüfen (Kopie, nicht die Artefakte)
+        run: |
+          $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=EPLAN Panel Data Service CI-Signiertest' `
+            -CertStoreLocation Cert:\CurrentUser\My -KeyExportPolicy Exportable -NotAfter (Get-Date).AddDays(2)
+          $thumbprint = $cert.Thumbprint
+          $password = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(24))
+          Write-Host "::add-mask::$password"
+          $pfxFile = Join-Path $env:RUNNER_TEMP 'signiertest.pfx'
+          try {
+            $secure = ConvertTo-SecureString -String $password -AsPlainText -Force
+            Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$thumbprint" -FilePath $pfxFile -Password $secure | Out-Null
+            $pfx = [Convert]::ToBase64String([IO.File]::ReadAllBytes($pfxFile))
+          }
+          finally {
+            Remove-Item -LiteralPath $pfxFile -Force -ErrorAction SilentlyContinue
+            # sign.ps1 soll Import und Aufräumen selbst erledigen
+            Remove-Item -LiteralPath "Cert:\CurrentUser\My\$thumbprint" -DeleteKey
+            Get-ChildItem -LiteralPath Cert:\CurrentUser\CA | Where-Object Thumbprint -eq $thumbprint | Remove-Item
+          }
+          Write-Host "::add-mask::$pfx"
+
+          $dir = Join-Path $env:RUNNER_TEMP 'signiertest'
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          $copy = Join-Path $dir 'pds.exe'
+          Copy-Item -LiteralPath windows/.payload/pds.exe -Destination $copy -Force
+          # Die Zusammenfassung soll nur die echte Signatur (oder UNSIGNIERT) zeigen
+          $summary = $env:GITHUB_STEP_SUMMARY
+          $env:GITHUB_STEP_SUMMARY = $null
+          # sign.ps1 liest beide Variablen und entfernt sie sofort aus der Umgebung
+          $env:WINDOWS_SIGN_PFX = $pfx
+          $env:WINDOWS_SIGN_PASSWORD = $password
+          try {
+            ./windows/scripts/sign.ps1 -Files $copy
+          }
+          finally {
+            Remove-Item Env:WINDOWS_SIGN_PFX, Env:WINDOWS_SIGN_PASSWORD -ErrorAction SilentlyContinue
+            $env:GITHUB_STEP_SUMMARY = $summary
+          }
+
+          $signature = Get-AuthenticodeSignature -LiteralPath $copy
+          Write-Host "Signatur: $($signature.Status) – $($signature.StatusMessage)"
+          if ($null -eq $signature.SignerCertificate) {
+            throw 'Die Kopie ist nicht signiert'
+          }
+          if ($signature.SignerCertificate.Thumbprint -ne $thumbprint) {
+            throw "Signiert mit $($signature.SignerCertificate.Thumbprint), erwartet $thumbprint"
+          }
+          if ($null -eq $signature.TimeStamperCertificate) {
+            throw 'Die Signatur hat keinen Zeitstempel'
+          }
+          # sign.ps1 räumt auf: Zertifikat samt Schlüssel ist wieder aus dem Speicher
+          if (Get-ChildItem -LiteralPath Cert:\CurrentUser\My | Where-Object Thumbprint -eq $thumbprint) {
+            throw 'sign.ps1 hat das importierte Zertifikat nicht entfernt'
+          }
+          Write-Host "Signierpfad geprüft (Zeitstempel: $($signature.TimeStamperCertificate.Subject))"
+
+      # Ohne Secret WINDOWS_SIGN_PFX: Warnung UNSIGNIERT und weiter. Eigene EXEs und caddy.exe liegen oben
+      # in der Payload (node\node.exe ist schon signiert); dazu der EPLAN-Worker, falls die Payload ihn enthält
+      # (hier wegen -SkipEplanWorker nicht)
+      - name: EXEs signieren
+        env:
+          WINDOWS_SIGN_PFX: ${{ secrets.WINDOWS_SIGN_PFX }}
+          WINDOWS_SIGN_PASSWORD: ${{ secrets.WINDOWS_SIGN_PASSWORD }}
+          WINDOWS_SIGN_TSA: ${{ vars.WINDOWS_SIGN_TSA }}
+        run: |
+          $files = @(Get-ChildItem -LiteralPath windows/.payload -Filter *.exe -File | ForEach-Object FullName)
+          $worker = 'windows/.payload/eplan/pds-eplan.exe'
+          if (Test-Path -LiteralPath $worker -PathType Leaf) {
+            $files += (Resolve-Path -LiteralPath $worker).Path
+          }
+          ./windows/scripts/sign.ps1 -Files $files
+
+      - name: MSI bauen (Version und Basisversion)
+        run: |
+          $webView2 = 'windows/.vendor/webview2/MicrosoftEdgeWebView2RuntimeInstallerX64.exe'
+          foreach ($version in '${{ steps.version.outputs.version }}', '${{ steps.version.outputs.baseline }}') {
+            ./windows/scripts/build-msi.ps1 -Payload windows/.payload -WebView2 $webView2 -Version $version -Out dist
+          }
+
+      - name: MSI signieren
+        env:
+          WINDOWS_SIGN_PFX: ${{ secrets.WINDOWS_SIGN_PFX }}
+          WINDOWS_SIGN_PASSWORD: ${{ secrets.WINDOWS_SIGN_PASSWORD }}
+          WINDOWS_SIGN_TSA: ${{ vars.WINDOWS_SIGN_TSA }}
+        run: ./windows/scripts/sign.ps1 -Files @(Get-ChildItem -LiteralPath dist -Filter *.msi -File | ForEach-Object FullName)
+
+      # Unsignierte MSIs sollen schon am Artefaktnamen erkennbar sein
+      - name: Artefaktname
+        id: artifact
+        env:
+          HAS_SIGNING_SECRET: ${{ secrets.WINDOWS_SIGN_PFX != '' }}
+        run: |
+          $name = if ($env:HAS_SIGNING_SECRET -eq 'true') { 'msi' } else { 'msi-unsigniert' }
+          "name=$name" >> $env:GITHUB_OUTPUT
+          Write-Host "Artefakt: $name"
+
+      # Groß (WebView2 steckt im MSI): auf Branches nur kurz aufheben, Release-Tags länger
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: dist/*.msi
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: ${{ startsWith(github.ref, 'refs/tags/') && 30 || 3 }}
+
+  smoke:
+    name: smoke
+    needs: build
+    runs-on: windows-2022
+    # SQL Server Express (choco) braucht allein etwa 10 Minuten
+    timeout-minutes: 75
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Zeilenenden nicht umwandeln
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: windows/scripts
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.build.outputs.artifact }}
+          path: dist
+
+      - name: Smoke-Test
+        run: >-
+          ./windows/scripts/smoke.ps1
+          -Msi 'dist/pds-${{ needs.build.outputs.version }}-x64.msi'
+          -BaselineMsi 'dist/pds-${{ needs.build.outputs.baseline }}-x64.msi'
+          -LogDir (Join-Path $env:RUNNER_TEMP 'smoke')
+
+      - name: Diagnose sammeln
+        if: always()
+        run: |
+          . ./windows/scripts/smoke-lib.ps1
+          Save-SmokeDiagnostics -LogDir (Join-Path $env:RUNNER_TEMP 'smoke') -Label 'ende'
+
+      # MSI-Logs, logs/, state/status.json, Einträge der Ereignisquelle und Dienstereignisse des SCM
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: smoke-logs
+          path: ${{ runner.temp }}/smoke
+          if-no-files-found: warn
+          retention-days: 7

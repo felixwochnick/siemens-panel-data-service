@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg fill="currentColor" id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <defs>
+    <style>
+      .cls-1, .cls-2 {
+        stroke-width: 0px;
+      }
+
+      .cls-2 {
+        fill-rule: evenodd;
+      }
+    </style>
+  </defs>
+  <rect class="cls-1" x="11" y="18" width="2" height="4"/>
+  <rect class="cls-1" x="11" y="2" width="2" height="4"/>
+  <rect class="cls-1" x="16.657" y="15.657" width="2" height="4" transform="translate(-7.31377 17.657) rotate(-45)"/>
+  <rect class="cls-1" x="5.3432" y="4.3432" width="2" height="4" transform="translate(-2.62744 6.3432) rotate(-45)"/>
+  <rect class="cls-1" x="16.6566" y="4.3432" width="2" height="4" transform="translate(25.65638 23.31362) rotate(-135.00001)"/>
+  <rect class="cls-1" x="5.3432" y="15.6569" width="2" height="4" transform="translate(-1.65679 34.62753) rotate(-135.00001)"/>
+  <rect class="cls-1" x="3" y="10" width="2" height="4" transform="translate(-8 16) rotate(-90)"/>
+  <rect class="cls-1" x="19" y="10" width="2" height="4" transform="translate(8 32) rotate(-90)"/>
+  <path class="cls-2" d="m12.07709,7.5c-2.48529,0-4.5,2.01471-4.5,4.5s2.01471,4.5,4.5,4.5,4.5-2.01471,4.5-4.5-2.01471-4.5-4.5-4.5Z"/>
+</svg>

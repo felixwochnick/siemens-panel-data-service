@@ -1,0 +1,12 @@
+/* Siemens-Design aus dem UI-Layer (Tailwind, Nuxt UI, Farben, Schriften) */
+@import "../../../../../packages/ui/app/assets/css/main.css";
+
+/* Klassen dieser Oberfläche und der Theme-Ergänzungen in vite.config.ts */
+@source "../";
+@source "../../vite.config.ts";
+
+html,
+body {
+    background: var(--ui-bg);
+    color: var(--ui-text);
+}

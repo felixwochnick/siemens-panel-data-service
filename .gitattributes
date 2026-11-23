@@ -1,0 +1,2 @@
+# PFX-Testdateien sind binär: keine Zeilenende-Umwandlung, kein Text-Diff
+*.pfx binary

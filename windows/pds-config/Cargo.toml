@@ -1,0 +1,47 @@
+[package]
+name = "pds-config"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+# Die Befehlslogik liegt plattformunabhängig in der Bibliothek (unter Linux getestet), Tauri nur im
+# Windows-Binary.
+[lib]
+name = "pds_config"
+path = "src/lib.rs"
+
+[[bin]]
+name = "pds-config"
+path = "src/main.rs"
+# Kein Testlauf des Binarys: Ohne das App-Manifest (Common Controls v6) startete die Test-EXE mit
+# Tauri unter Windows nicht; getestet wird die Bibliothek.
+test = false
+
+[features]
+default = ["custom-protocol"]
+# Oberfläche aus der EXE statt von `build.devUrl` (Vite). Ohne diese Funktion lädt auch ein
+# Release-Build vom Entwicklungsserver; für Live-Reload `--no-default-features`.
+custom-protocol = ["tauri/custom-protocol"]
+
+[dependencies]
+pds-common.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+time.workspace = true
+ts-rs.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+tauri.workspace = true
+tauri-plugin-dialog.workspace = true
+
+# Meldung, wenn die Oberfläche nicht startet (etwa ohne WebView2-Laufzeit)
+[target.'cfg(windows)'.dependencies.windows]
+workspace = true
+features = ["Win32_UI_WindowsAndMessaging"]
+
+[build-dependencies]
+# `codegen`: Kontext im Build-Skript, damit ein neuer Stand von `ui/dist` neu eingebettet wird
+tauri-build = { workspace = true, features = ["codegen"] }
+
+[dev-dependencies]
+tempfile.workspace = true

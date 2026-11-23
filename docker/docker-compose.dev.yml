@@ -1,0 +1,51 @@
+# Entwicklung: SQL Server für `pnpm dev` und die Tests.
+# Mit `--profile sso` zusätzlich Test-OIDC (Dex) mit Test-LDAP (glauth) – siehe docker/dev/.
+name: pds-dev
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: PdsDev-Sa-2026
+    ports: ["127.0.0.1:1435:1433"]
+    volumes: [pds-dev-mssql:/var/opt/mssql]
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' -b -o /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  mssql-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    entrypoint: ["/bin/bash", "/init.sh"]
+    environment:
+      MSSQL_HOST: mssql
+      MSSQL_SA_PASSWORD: PdsDev-Sa-2026
+      DB_NAME: pds
+      DB_USER: pds_app
+      DB_PASSWORD: PdsDev-App-2026
+    volumes: ["./mssql/init.sh:/init.sh:ro"]
+    depends_on:
+      mssql:
+        condition: service_healthy
+    restart: "no"
+
+  glauth:
+    image: glauth/glauth:latest
+    profiles: [sso]
+    volumes: ["./dev/glauth.cfg:/app/config/config.cfg:ro"]
+    ports: ["127.0.0.1:3895:3893"]
+
+  dex:
+    image: ghcr.io/dexidp/dex:latest
+    profiles: [sso]
+    command: ["dex", "serve", "/etc/dex/config.yml"]
+    volumes: ["./dev/dex.yml:/etc/dex/config.yml:ro"]
+    ports: ["127.0.0.1:5558:5556"]
+    depends_on: [glauth]
+
+volumes:
+  pds-dev-mssql:

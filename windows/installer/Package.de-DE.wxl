@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Deutsche Texte des MSI; die Dialoge von WixUI_Minimal bringt WixToolset.UI.wixext für de-DE selbst mit -->
+<WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Culture="de-DE" Codepage="1252">
+  <String Id="DowngradeError" Value="Eine neuere Version von [ProductName] ist bereits installiert. Ein Downgrade ist nicht möglich; bitte zuerst die neuere Version deinstallieren." />
+  <String Id="ServiceDescription" Value="Analysiert EPLAN-Electric-P8-Projekte mit dem EPLAN-Worker (Dienst pds-eplan) und stellt die Ergebnisse in der Datenbank bereit; startet und überwacht dazu die Web-App und den HTTPS-Proxy." />
+  <String Id="ConfigShortcutName" Value="EPLAN Panel Data Service – Konfiguration" />
+  <String Id="ConfigShortcutDescription" Value="Adresse, Zertifikat, Datenbank, Anmeldung und EPLAN-Worker des EPLAN Panel Data Services einrichten und die Web-App öffnen" />
+</WixLocalization>

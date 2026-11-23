@@ -1,0 +1,170 @@
+{
+  "app": {
+    "name": "Panel Data Service",
+    "nav": {
+      "overview": "Overview",
+      "projects": "Projects",
+      "settings": "Settings",
+      "logs": "Logs",
+      "assistants": "AI assistants"
+    },
+    "workerStates": {
+      "disabled": "No worker configured",
+      "connecting": "Connecting …",
+      "connected": "Connected",
+      "disconnected": "Worker not reachable"
+    },
+    "refresh": "Refresh",
+    "via": {
+      "ui": "Web app",
+      "mcp": "AI assistant"
+    },
+    "error": {
+      "home": "Go to overview",
+      "forbidden": {
+        "title": "No access",
+        "text": "This page is for administrators only. Projects and results remain available to you."
+      },
+      "notFound": {
+        "title": "Page not found",
+        "text": "This address does not exist (anymore). The project or analysis may have been deleted."
+      },
+      "general": {
+        "title": "Something went wrong",
+        "text": "Please reload the page. If the error persists, contact the administrators."
+      }
+    }
+  },
+  "overview": {
+    "title": "Overview",
+    "issues": {
+      "title": "The settings are incomplete",
+      "unsaved": "The settings have never been saved (defaults apply).",
+      "unreadableTitle": "Stored password not readable",
+      "unreadableText": "The network drive password cannot be decrypted with the current app secret. Please enter it again in the settings.",
+      "fix": "Go to settings"
+    },
+    "worker": {
+      "title": "EPLAN worker",
+      "eplan": "EPLAN",
+      "busy": "busy",
+      "version": "Version",
+      "transports": {
+        "pipe": "Service (named pipe)",
+        "spawn": "Process (development)"
+      },
+      "since": "Since",
+      "restart": "Restart worker",
+      "restartTitle": "Restart the EPLAN worker?",
+      "restartQuestion": "EPLAN is stopped and started again with the next job. A running analysis fails.",
+      "restarted": "The EPLAN worker is restarting.",
+      "hint": {
+        "disabled": "No EPLAN worker configured",
+        "disconnected": "The EPLAN worker is not reachable",
+        "text": "Uploaded projects and selected analyses wait in the queue until the worker is connected again."
+      }
+    },
+    "queue": {
+      "title": "Queue",
+      "waiting": "Waiting: {count}",
+      "since": "for {duration}",
+      "idle": "No analysis is running.",
+      "more": "and {count} more"
+    },
+    "schedule": {
+      "title": "Schedule",
+      "on": "On",
+      "off": "Off",
+      "toggle": "Switch the schedule on or off",
+      "invalid": "The cron expression or the time zone is invalid.",
+      "notActive": "The schedule is switched on but not scheduled in this process (check the settings).",
+      "next": "Next runs",
+      "offHint": "Switched off: projects in the project folder are only analyzed on request.",
+      "edit": "Edit schedule",
+      "switchedOn": "Schedule switched on",
+      "switchedOff": "Schedule switched off"
+    },
+    "recent": {
+      "title": "Recently analyzed",
+      "all": "All projects",
+      "summary": "{connections} connections, {cables} cables",
+      "none": "No analyses yet",
+      "noneHint": "Upload a project archive (.zw1) or choose projects from the project folder."
+    },
+    "audit": {
+      "title": "Recent changes",
+      "empty": "No changes yet.",
+      "viaMcp": "AI assistant"
+    },
+    "database": "Database: {name}",
+    "databases": {
+      "mssql": "SQL Server",
+      "sqlite": "SQLite"
+    }
+  },
+  "auth": {
+    "appName": "Panel Data Service",
+    "login": {
+      "subtitle": "Connections, cables, shields and texts from EPLAN projects",
+      "hint": "Access is controlled by your company sign-in."
+    }
+  },
+  "mcp": {
+    "access": {
+      "write": "Read and start analyses"
+    },
+    "accessHint": {
+      "read": "View and evaluate projects, analyses and results. Nothing is changed.",
+      "write": "Also start analyses; administrators can also change the schedule and settings (without passwords)."
+    },
+    "assistants": {
+      "connect": {
+        "lifetime": "A connection is valid for 30 days. After that, open {command} in Claude Code again and choose “Authenticate”."
+      }
+    }
+  },
+  "audit": {
+    "settings_updated": "Settings changed",
+    "settings_updated_fields": "Settings changed: {fields}",
+    "scheduler_toggled_on": "Schedule switched on",
+    "scheduler_toggled_off": "Schedule switched off",
+    "project_uploaded": "Project {fileName} uploaded",
+    "analysis_started": "Analysis #{analysisId} started",
+    "analysis_deleted": "Analysis #{analysisId} deleted",
+    "project_deleted": "Project {name} deleted",
+    "worker_restarted": "EPLAN worker restarted",
+    "unknown": "Change ({action})",
+    "system": "System"
+  },
+  "errors": {
+    "invalid_settings": "Some settings are invalid. Please check the marked fields.",
+    "settings_incomplete": "The settings are incomplete. Please complete the settings first.",
+    "secret_required": "A stored password only applies to its previous share and user. After a change, please enter the password again.",
+    "secret_unreadable": "The stored network drive password can no longer be read. Please enter it again in the settings.",
+    "analysis_already_queued": "An analysis of this project is already waiting or running.",
+    "analysis_running": "The analysis is running. Please wait until it has finished.",
+    "analysis_not_succeeded": "This analysis has no results (it did not finish successfully).",
+    "analysis_not_running": "The analysis is no longer running.",
+    "no_current_analysis": "This project has not been analyzed successfully yet.",
+    "project_or_analysis_required": "Please specify a project or an analysis.",
+    "project_or_folder_path_required": "Please specify either a project id or a path in the project folder.",
+    "folder_not_configured": "No project folder is configured.",
+    "folder_not_found": "The project folder was not found.",
+    "folder_unreadable": "The project folder cannot be read.",
+    "folder_project_not_found": "The project was not found in the project folder.",
+    "invalid_path": "The path is invalid. Allowed are paths to .elk or .zw1 files relative to the project folder.",
+    "edb_missing": "The .edb folder with the same name as the .elk file is missing.",
+    "network_drive_unsupported": "Network drives are only supported on Windows.",
+    "network_drive_failed": "The network drive could not be connected.",
+    "drive_unavailable": "The network drive is not reachable after connecting.",
+    "upload_invalid_type": "Please upload a project archive in .zw1 format.",
+    "upload_invalid_name": "The file name is invalid.",
+    "upload_too_large": "The file is too large (at most {maxMb} MB).",
+    "upload_name_too_long": "The project name is too long (at most {max} characters); please rename the file.",
+    "upload_empty": "The file is empty.",
+    "worker_not_configured": "No EPLAN worker is configured.",
+    "worker_unreachable": "The EPLAN worker is not reachable.",
+    "log_dir_not_configured": "Logs are only available in the Windows service (NUXT_LOG_DIR is missing).",
+    "shutting_down": "The service is shutting down."
+  }
+}

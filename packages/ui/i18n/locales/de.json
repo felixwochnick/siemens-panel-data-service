@@ -1,0 +1,35 @@
+{
+  "common": {
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "saved": "Gespeichert",
+    "create": "Anlegen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "deleted": "Gelöscht",
+    "back": "Zurück",
+    "close": "Schließen",
+    "search": "Suchen",
+    "filter": "Filtern",
+    "reset": "Zurücksetzen",
+    "print": "Drucken",
+    "loading": "Wird geladen …",
+    "language": "Sprache",
+    "colorMode": "Farbschema",
+    "actions": "Aktionen",
+    "none": "Keine",
+    "noResults": "Keine Einträge gefunden",
+    "optional": "optional",
+    "today": "Heute",
+    "previous": "Zurück",
+    "next": "Weiter",
+    "week": "KW {week}",
+    "weekdays": {
+      "short": ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+    },
+    "confirm": {
+      "title": "Bitte bestätigen",
+      "ok": "Bestätigen"
+    }
+  }
+}

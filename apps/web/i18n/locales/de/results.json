@@ -1,0 +1,96 @@
+{
+  "results": {
+    "tabs": {
+      "connections": "Verbindungen",
+      "cables": "Kabel",
+      "shields": "Schirme",
+      "texts": "Texte"
+    },
+    "yes": "ja",
+    "jumpToConnection": "Zur Verbindung springen",
+    "empty": {
+      "connections": "Dieses Projekt hat keine Verbindungen.",
+      "cables": "Dieses Projekt hat keine Kabel.",
+      "shields": "Dieses Projekt hat keine Schirme.",
+      "texts": "Dieses Projekt hat keine freien Texte."
+    },
+    "columns": {
+      "connections": {
+        "page": "Seite",
+        "definition": "Funktionsdefinition",
+        "designation": "Verbindungsbezeichnung",
+        "source": "Quelle",
+        "destination": "Ziel",
+        "cable": "Kabel",
+        "wireNumber": "Farbe/Nummer",
+        "crossSection": "Querschnitt",
+        "wireType": "Typ",
+        "length": "Länge",
+        "partNumbers": "Artikelnummer",
+        "hashMark": "#-Markierung",
+        "twisted": "Verdrillung",
+        "shielded": "Abgeschirmt"
+      },
+      "cables": {
+        "name": "Kabel",
+        "definition": "Funktionsdefinition",
+        "page": "Seite",
+        "source": "Quelle",
+        "destination": "Ziel",
+        "type": "Typ",
+        "wireCountAndCrossSection": "Adern x Querschnitt",
+        "length": "Länge",
+        "wireNumber": "Farbe/Nummer",
+        "crossSection": "Querschnitt",
+        "partNumbers": "Artikelnummer"
+      },
+      "shields": {
+        "page": "Seite",
+        "name": "Schirm",
+        "type": "Typ",
+        "wireCountAndCrossSection": "Adern x Querschnitt",
+        "wireCount": "Anzahl Adern",
+        "wires": "Adern"
+      },
+      "texts": {
+        "page": "Seite",
+        "text": "Text"
+      }
+    }
+  },
+  "sheet": {
+    "search": "In allen Spalten suchen",
+    "count": "{shown} von {total} Zeilen",
+    "resetFilters": "Filter zurücksetzen",
+    "selection": "{rows} × {cols} markiert",
+    "expandAll": "Alle aufklappen",
+    "collapseAll": "Alle zuklappen",
+    "expand": "Aufklappen",
+    "collapse": "Zuklappen",
+    "export": "Exportieren",
+    "exportXlsx": "Excel (.xlsx)",
+    "exportXlsxHint": "Gefilterte Zeilen in dieser Reihenfolge, alle Werte als Text",
+    "exportCsv": "CSV (Semikolon)",
+    "exportCsvHint": "Werte, die mit = + - {'@'} beginnen, erhalten ein ' davor (Schutz vor Formeln)",
+    "exportFailed": "Der Export konnte nicht erstellt werden.",
+    "pinFirst": "Erste Spalte fixieren",
+    "unpinFirst": "Erste Spalte lösen",
+    "resetWidths": "Spaltenbreiten zurücksetzen",
+    "selectAll": "Alles markieren",
+    "rowNumber": "Nr.",
+    "resizeColumn": "Breite der Spalte {column} ändern",
+    "filterPlaceholder": "enthält …",
+    "filterLabel": "Filter {column}",
+    "flag": {
+      "all": "alle",
+      "yes": "ja",
+      "no": "nein"
+    },
+    "copied": "{rows} × {cols} Zellen kopiert",
+    "copiedWithHeader": "{rows} × {cols} Zellen mit Überschrift kopiert",
+    "copyFailed": "Kopieren in die Zwischenablage ist fehlgeschlagen.",
+    "noMatches": "Keine Zeile passt zu Filter oder Suche.",
+    "noRows": "Keine Zeilen",
+    "hint": "Klick auf eine Überschrift sortiert (auf, ab, aus). Markieren mit Maus, Umschalt+Klick oder Umschalt+Pfeiltasten; Strg+C kopiert für Excel. Strg+Leertaste markiert ganze Spalten – dann mit Überschrift. Spaltenrand ziehen ändert die Breite, Doppelklick passt sie an."
+  }
+}

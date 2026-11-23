@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Protokoll, Sitzung und raw.json ohne EPLAN (läuft unter Linux); die EPLAN-Seite ist nur unter Windows testbar -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>Pds.EplanWorker.Tests</RootNamespace>
+    <Nullable>disable</Nullable>
+    <!--
+      xunit.v3 macht das Projekt sonst zu einer Microsoft.Testing.Platform-Anwendung; die verlangt mit dem .NET-10-SDK
+      ein Opt-in per global.json im Aufrufordner. So läuft "dotnet test worker/tests/Pds.EplanWorker.Tests" von überall
+      über VSTest (xunit.runner.visualstudio).
+    -->
+    <IsTestingPlatformApplication>false</IsTestingPlatformApplication>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
+    <PackageReference Include="xunit.v3" Version="4.0.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Pds.EplanWorker.Core\Pds.EplanWorker.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

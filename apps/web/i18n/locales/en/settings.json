@@ -1,0 +1,144 @@
+{
+  "settingsIssues": {
+    "required": "Required",
+    "invalid_value": "Invalid value",
+    "invalid_cron": "Not a valid cron expression",
+    "invalid_timezone": "Unknown time zone",
+    "invalid_network_path": "Not a valid UNC path (\\\\server\\share)",
+    "invalid_drive_letter": "Not a valid drive letter",
+    "invalid_pattern": "Invalid file pattern (name only, with * and ?)",
+    "out_of_range": "Value out of the allowed range",
+    "secret_unreadable": "Stored password cannot be read – please enter it again",
+    "secret_required": "After changing the share or user, please enter the password again"
+  },
+  "checks": {
+    "drive_ok": "Network drive connected",
+    "drive_unsupported": "Network drives are only supported on Windows",
+    "drive_failed": "Network drive could not be connected",
+    "drive_unavailable": "Network drive not reachable after connecting",
+    "folder_ok": "Project folder readable: {count} projects found",
+    "folder_not_configured": "No project folder configured",
+    "folder_not_found": "Project folder not found",
+    "folder_unreadable": "Project folder not readable",
+    "worker_ok": "EPLAN worker reachable (EPLAN: {eplan})",
+    "worker_not_configured": "No EPLAN worker configured",
+    "worker_unreachable": "EPLAN worker not reachable",
+    "worker_failed": "EPLAN could not be started in the worker"
+  },
+  "settings": {
+    "title": "Settings",
+    "test": "Test connection",
+    "lastSaved": "Last saved on {at} by {name}",
+    "neverSaved": "Never saved – defaults apply.",
+    "issuesTitle": "Something is still missing for analyses or the schedule",
+    "saved": "Settings saved",
+    "unchanged": "No changes",
+    "invalid": "Some settings are invalid. Please check the marked fields.",
+    "unsaved": "Unsaved changes",
+    "discard": "Discard",
+    "save": "Save",
+    "unsavedLeave": "The settings contain unsaved changes. Leave the page anyway?",
+    "sections": {
+      "folder": {
+        "title": "Project folder",
+        "description": "Where the projects are that the schedule and “Choose from folder” find. A copy is always analyzed."
+      },
+      "networkDrive": {
+        "title": "Network drive",
+        "description": "If the project folder is on a share, the service connects it before each access (Windows only).",
+        "inactive": "Only effective when “Network drive” is selected above."
+      },
+      "eplan": {
+        "title": "EPLAN",
+        "description": "Installation that the EPLAN worker starts. After a change the worker restarts."
+      },
+      "schedule": {
+        "title": "Schedule",
+        "description": "Scans the project folder regularly and analyzes new, changed and recently failed projects."
+      },
+      "analysis": {
+        "title": "Analysis",
+        "description": "Limits for analyses and uploaded files."
+      }
+    },
+    "fields": {
+      "folder": "Project folder",
+      "source": "Location",
+      "recursive": "Subfolders",
+      "filePatterns": "File patterns",
+      "networkDrive": {
+        "mapping": "Drive letter",
+        "networkPath": "Share (UNC path)",
+        "user": "User",
+        "password": "Password"
+      },
+      "eplan": {
+        "platformBin": "Bin folder of EPLAN Platform",
+        "productBin": "Bin folder of EPLAN Electric P8",
+        "applicationModifier": "Variant",
+        "openMode": "Open mode"
+      },
+      "schedulerEnabled": "Schedule switched on",
+      "cronSchedule": "Cron expression",
+      "timezone": "Time zone",
+      "analysisTimeoutMinutes": "Timeout (minutes)",
+      "retentionDays": "Retention (days)",
+      "uploadMaxMb": "Largest upload file (MB)"
+    },
+    "help": {
+      "folder": "Local path, drive or UNC path. Empty: no projects from a folder, upload only.",
+      "filePatterns": "Add with Enter, e.g. *.elk and *.zw1. Only .elk (with .edb folder) and .zw1 are projects.",
+      "recursive": "Search subfolders",
+      "mapping": "Optional, e.g. P. Empty: UNC connection only.",
+      "networkUser": "e.g. DOMAIN\\user; empty: account of the service",
+      "applicationModifier": "Empty: variant from install.xml",
+      "openMode": "ReadOnly does not change the project and is recommended.",
+      "schedulerEnabled": "Off after installation: nothing is analyzed unasked.",
+      "cronSchedule": "Quartz (sec min hour day month weekday) or classic with 5 fields.",
+      "analysisTimeoutMinutes": "After that the analysis fails and the worker restarts.",
+      "retentionDays": "Older versions are deleted, the current one of each project stays.",
+      "uploadMaxMb": "The server rejects larger .zw1 files."
+    },
+    "sources": {
+      "local": "Local or already connected",
+      "network": "Network drive"
+    },
+    "openModes": {
+      "ReadOnly": "Read only (ReadOnly)",
+      "Standard": "Standard",
+      "Exclusive": "Exclusive"
+    },
+    "cron": {
+      "examples": "Examples",
+      "daily": "daily 02:00",
+      "weekdays": "weekdays 06:00",
+      "hourly": "hourly",
+      "every15": "every 15 minutes",
+      "preview": "Next runs",
+      "previewOff": "Next runs (when switched on)",
+      "previewInvalid": "Not a valid cron expression or time zone."
+    },
+    "secret": {
+      "set": "Stored",
+      "notSet": "Not set",
+      "unreadable": "Not readable",
+      "willClear": "Removed when saving",
+      "reenter": "Please enter again",
+      "change": "Change",
+      "enter": "Enter",
+      "remove": "Remove",
+      "cancel": "Cancel",
+      "placeholder": "New password",
+      "retargetDrive": "Share or user changed: the stored password only applies to the previous target. Please enter it again."
+    },
+    "testDialog": {
+      "title": "Test connection",
+      "description": "With the values of the form, even if they are not saved yet.",
+      "running": "Testing …",
+      "drive": "Network drive",
+      "folder": "Project folder",
+      "worker": "EPLAN worker",
+      "again": "Test again"
+    }
+  }
+}

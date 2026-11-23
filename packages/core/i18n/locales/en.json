@@ -1,0 +1,100 @@
+{
+  "auth": {
+    "appName": "Panel Data Service",
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Rotation planning for apprentices",
+      "button": "Sign in with {provider}",
+      "hint": "Access is managed through Microsoft Entra ID. After your first sign-in, an admin assigns you to the right locations."
+    },
+    "logout": "Sign out",
+    "adminBadge": "Admin",
+    "colorMode": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    }
+  },
+  "errors": {
+    "unknown": "Unexpected error. Please try again.",
+    "unauthorized": "Your session has expired. Please sign in again.",
+    "forbidden": "You don't have permission to do that.",
+    "not_found": "Not found.",
+    "invalid_input": "The input is invalid.",
+    "invalid_id": "Invalid ID.",
+    "sso_failed": "Sign-in failed. Please try again.",
+    "sso_denied": "Sign-in was rejected by the identity provider.",
+    "sso_unavailable": "The sign-in service is currently unavailable.",
+    "login_expired": "The sign-in attempt expired. Please sign in again.",
+    "oidc_not_configured": "Sign-in is not configured.",
+    "account_unknown": "This account is unknown.",
+    "payload_too_large": "The request is too large.",
+    "unsupported_media_type": "Invalid request format.",
+    "oauth_invalid_request": "The request from the program is invalid.",
+    "oauth_unknown_client": "This program is not registered.",
+    "oauth_invalid_redirect": "The program's redirect address is not registered.",
+    "oauth_invalid_resource": "The program asks for access to a different service than this one.",
+    "reauth_required": "Please sign in again to allow access."
+  },
+  "mcp": {
+    "access": {
+      "read": "Read only",
+      "write": "Read and change"
+    },
+    "accessHint": {
+      "read": "View and analyse data. Nothing is changed.",
+      "write": "Also change data, as far as your permissions allow."
+    },
+    "assistants": {
+      "title": "AI assistants",
+      "intro": "Connect Claude Code to {app} to ask questions about the data or have tasks done. The assistant works on your behalf and never has more permissions than you.",
+      "connect": {
+        "title": "Connect Claude Code",
+        "description": "Set it up once, then sign in from Claude Code.",
+        "step1": "Run this command in your terminal:",
+        "step2": "In Claude Code, open {command}, select the server {server}, then choose “Authenticate”.",
+        "step3": "Confirm in the browser what the assistant may do.",
+        "copy": "Copy command",
+        "copied": "Copied",
+        "lifetime": "A connection ends at the latest 12 hours after you signed in to this application – just like the sign-in itself. After that, open {command} in Claude Code again and choose “Authenticate”."
+      },
+      "privacy": {
+        "title": "Data protection",
+        "text": "What the assistant reads is sent to the AI provider. Only use assistants your company has approved, and only retrieve data you are allowed to process there."
+      },
+      "connections": {
+        "title": "Your connections",
+        "description": "Programs that may access {app} on your behalf.",
+        "empty": "No connections",
+        "emptyHint": "As soon as you allow a program, it appears here.",
+        "connectedAt": "Connected",
+        "lastUsed": "Last used",
+        "neverUsed": "Not used yet",
+        "expiresAt": "Expires",
+        "disconnect": "Disconnect",
+        "disconnectTitle": "Disconnect?",
+        "disconnectQuestion": "{name} loses access immediately. You can connect the program again at any time.",
+        "disconnected": "Disconnected"
+      }
+    }
+  },
+  "oauth": {
+    "consent": {
+      "title": "Allow access?",
+      "intro": "A program wants to connect to {app} and work on your behalf. It never has more permissions than you.",
+      "client": "Program",
+      "clientHint": "The name is declared by the program itself and not verified.",
+      "redirectHost": "Then back to",
+      "redirectHint": "After your decision, the browser jumps to this address.",
+      "user": "Signed in as",
+      "access": "Access level",
+      "requested": "The program asked for “{level}”. The lowest level is always preselected.",
+      "allow": "Allow",
+      "deny": "Deny",
+      "footer": "You can disconnect at any time under “AI assistants”. It ends by itself at the latest 12 hours after you signed in.",
+      "errorTitle": "Access not possible",
+      "errorHint": "Nothing was granted. Start the sign-in again in the program.",
+      "reauth": "Sign in again"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 2
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.ps1]
+# Windows PowerShell 5.1 liest Skripte ohne BOM als ANSI und zerlegt dann Umlaute
+charset = utf-8-bom
+indent_size = 4

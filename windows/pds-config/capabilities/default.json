@@ -1,0 +1,6 @@
+{
+  "identifier": "default",
+  "description": "Hauptfenster: Grundrechte von Tauri und die Dateiauswahl (Öffnen und Speichern) für Zertifikate und das SQL-Skript.",
+  "windows": ["main"],
+  "permissions": ["core:default", "dialog:allow-open", "dialog:allow-save"]
+}
