@@ -337,7 +337,9 @@ pub struct ServicePlan {
     pub display_name: &'static str,
     pub description: &'static str,
     pub executable: PathBuf,
-    pub arguments: Vec<&'static str>,
+    /// `service --log-dir <Logordner>`: Der Worker schreibt seine Logs dorthin, wo diese Installation
+    /// dem Konto die Rechte gibt und die Web-App sie liest (auch mit `PDS_DATA_DIR`).
+    pub arguments: Vec<String>,
     /// Start automatisch, verzögert: EPLAN braucht Netzwerk und Lizenzserver.
     pub delayed_auto_start: bool,
     /// Wiederherstellung: je Fehler ein Neustart nach dieser Wartezeit.
@@ -354,7 +356,11 @@ pub fn service_plan(paths: &Paths) -> ServicePlan {
         display_name: EPLAN_SERVICE_DISPLAY_NAME,
         description: EPLAN_SERVICE_DESCRIPTION,
         executable: paths.eplan_exe(),
-        arguments: vec![WORKER_ARGUMENT],
+        arguments: vec![
+            WORKER_ARGUMENT.to_owned(),
+            "--log-dir".to_owned(),
+            paths.logs_dir().display().to_string(),
+        ],
         delayed_auto_start: true,
         recovery: RECOVERY_DELAYS.to_vec(),
         recovery_reset: RECOVERY_RESET,
@@ -363,14 +369,43 @@ pub fn service_plan(paths: &Paths) -> ServicePlan {
 }
 
 /// Befehlszeile des Dienstes, wie sie im SCM steht: Pfad in Anführungszeichen (er enthält
-/// Leerzeichen), dann die Argumente.
+/// Leerzeichen), dann die Argumente, mit Leerraum in Anführungszeichen.
 pub fn command_line(plan: &ServicePlan) -> String {
     let mut line = format!("\"{}\"", plan.executable.display());
     for argument in &plan.arguments {
         line.push(' ');
-        line.push_str(argument);
+        line.push_str(&quote_argument(argument));
     }
     line
+}
+
+/// Ein Argument nach den Regeln von CommandLineToArgvW: in Anführungszeichen, wenn es leer ist oder
+/// Leerraum bzw. Anführungszeichen enthält; Backslashes vor einem Anführungszeichen (auch dem
+/// schließenden) werden verdoppelt.
+fn quote_argument(argument: &str) -> String {
+    if !argument.is_empty() && !argument.contains([' ', '\t', '"']) {
+        return argument.to_owned();
+    }
+    let mut quoted = String::from('"');
+    let mut backslashes = 0;
+    for c in argument.chars() {
+        match c {
+            '\\' => backslashes += 1,
+            '"' => {
+                quoted.push_str(&"\\".repeat(backslashes * 2 + 1));
+                quoted.push('"');
+                backslashes = 0;
+            }
+            _ => {
+                quoted.push_str(&"\\".repeat(backslashes));
+                quoted.push(c);
+                backslashes = 0;
+            }
+        }
+    }
+    quoted.push_str(&"\\".repeat(backslashes * 2));
+    quoted.push('"');
+    quoted
 }
 
 /// Ein Recht des Worker-Kontos auf einem Ordner des Datenordners.
@@ -916,7 +951,7 @@ mod tests {
 
         assert_eq!(plan.name, "pds-eplan");
         assert_eq!(plan.executable, Path::new("/inst/eplan/pds-eplan.exe"));
-        assert_eq!(plan.arguments, ["service"]);
+        assert_eq!(plan.arguments, ["service", "--log-dir", "/daten/logs"]);
         assert!(plan.delayed_auto_start);
         assert!(plan.failure_actions_on_non_crash);
         assert_eq!(
@@ -924,7 +959,23 @@ mod tests {
             [10, 30, 60].map(Duration::from_secs).to_vec()
         );
         assert_eq!(plan.recovery_reset, Duration::from_secs(86_400));
-        assert_eq!(command_line(&plan), "\"/inst/eplan/pds-eplan.exe\" service");
+        assert_eq!(
+            command_line(&plan),
+            "\"/inst/eplan/pds-eplan.exe\" service --log-dir /daten/logs"
+        );
+    }
+
+    #[test]
+    fn quote_argument_follows_windows_rules() {
+        assert_eq!(quote_argument("service"), "service");
+        assert_eq!(quote_argument(""), "\"\"");
+        assert_eq!(
+            quote_argument(r"C:\ProgramData\EPLAN Panel Data Service\logs"),
+            r#""C:\ProgramData\EPLAN Panel Data Service\logs""#
+        );
+        // Ein abschließender Backslash würde sonst das schließende Anführungszeichen maskieren
+        assert_eq!(quote_argument(r"C:\A B\"), r#""C:\A B\\""#);
+        assert_eq!(quote_argument(r#"a "b""#), r#""a \"b\"""#);
     }
 
     #[test]
