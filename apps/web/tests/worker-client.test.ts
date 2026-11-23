@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { DEFAULT_PIPE, WorkerClient, WorkerError, parseWorkerSpec, splitCommand } from '../server/services/worker-client'
+import { DEFAULT_PIPE, WorkerClient, WorkerError, findWorkspaceRoot, parseWorkerSpec, splitCommand } from '../server/services/worker-client'
 import type { WorkerConnection, WorkerConnector, WorkerSpec } from '../server/services/worker-client'
-import { fakeWorkerSpec } from './helpers/db'
+import { REPO_ROOT, WEB_ROOT, fakeWorkerSpec } from './helpers/db'
 
 /** Verbindung im Speicher: der Test spielt den Worker */
 class MemoryWorker {
@@ -76,6 +76,11 @@ describe('NUXT_EPLAN_WORKER', () => {
     expect(parseWorkerSpec('  ', { platform: 'linux' })).toBeNull()
     expect(() => parseWorkerSpec('tcp:1234')).toThrow()
     expect(() => parseWorkerSpec('spawn:')).toThrow()
+  })
+
+  it('spawn: ohne Angabe gilt die Wurzel des Monorepos als Arbeitsordner (Pfade wie in .env.example)', () => {
+    expect(findWorkspaceRoot(WEB_ROOT)).toBe(REPO_ROOT)
+    expect(parseWorkerSpec('spawn:node tools/fake-worker/index.mjs')).toMatchObject({ cwd: REPO_ROOT })
   })
 
   it('splitCommand hält Anführungszeichen zusammen (ohne Shell)', () => {

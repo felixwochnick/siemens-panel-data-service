@@ -439,11 +439,16 @@ export interface ProjectDetail extends ProjectInfo {
   analyses: AnalysisInfo[]
 }
 
-/** GET /api/projects?search=&source=&page=&pageSize= */
+/** Sortierung der Projektliste: name (A–Z, Standard) oder updated (zuletzt geändert zuerst) */
+export const PROJECT_SORTS = ['name', 'updated'] as const
+export type ProjectSort = typeof PROJECT_SORTS[number]
+
+/** GET /api/projects?search=&source=&sort=&page=&pageSize= */
 export interface ProjectQuery {
   /** Teil von Name oder Pfad */
   search?: string
   source?: ProjectSource
+  sort?: ProjectSort
   page?: number
   pageSize?: number
 }

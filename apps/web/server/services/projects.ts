@@ -11,9 +11,6 @@ import type { AppContext } from './context'
 import { ServiceError, notFound } from './errors'
 import { containsText, paging } from './sql'
 
-export const PROJECT_SORTS = ['name', 'updated'] as const
-export type ProjectSort = typeof PROJECT_SORTS[number]
-
 type ProjectRow = Selectable<ProjectsTable> & { createdByName: string | null }
 
 const projectsWithUser = (db: Kysely<AppDatabase>) => db.selectFrom('pds.projects as p')
@@ -58,7 +55,7 @@ function toProjectInfo(row: ProjectRow, current: AnalysisInfo | null, latest: An
 }
 
 /** Projekte mit Suche (Name oder Pfad) und Quelle; Standard nach Name */
-export async function listProjects(db: Kysely<AppDatabase>, actor: Actor, query: ProjectQuery & { sort?: ProjectSort } = {}): Promise<Paged<ProjectInfo>> {
+export async function listProjects(db: Kysely<AppDatabase>, actor: Actor, query: ProjectQuery = {}): Promise<Paged<ProjectInfo>> {
   requireUser(actor)
   const { pageSize, offset } = paging(query.page, query.pageSize, 200)
   const search = query.search?.trim()

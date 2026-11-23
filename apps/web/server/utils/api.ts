@@ -1,11 +1,10 @@
 import type { H3Event } from 'h3'
 import { z } from 'zod'
-import { ANALYSIS_STATUSES, ANALYSIS_TRIGGERS, EPLAN_OPEN_MODES, LOG_LEVELS, PROJECT_SOURCES } from '../../shared/types/api'
+import { ANALYSIS_STATUSES, ANALYSIS_TRIGGERS, EPLAN_OPEN_MODES, LOG_LEVELS, PROJECT_SORTS, PROJECT_SOURCES } from '../../shared/types/api'
 import { LIMITS } from '../lib/settings'
 import type { Actor } from '../services/access'
 import type { AppContext } from '../services/context'
 import { ServiceError } from '../services/errors'
-import { PROJECT_SORTS } from '../services/projects'
 
 type Handler<T> = (event: H3Event, actor: Actor, ctx: AppContext) => Promise<T> | T
 
