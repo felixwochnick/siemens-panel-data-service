@@ -49,6 +49,12 @@ async function uploadAndFinish(name: string, daysAgo: number, status: 'succeeded
 }
 
 const uploadDirs = async (projectId: number) => (await readdir(join(ctx.dataDir, 'uploads', String(projectId)))).sort()
+
+/** Ordner älter machen (junge Ordner lässt die Aufbewahrung stehen: Hochladen oder Analyse könnte gerade laufen) */
+async function age(...paths: string[]) {
+  const old = new Date(NOW.getTime() - 2 * DAY)
+  for (const path of paths) await utimes(path, old, old)
+}
 const fileOf = async (analysisId: number) => (await t.db.selectFrom('pds.analyses').select('uploadFile').where('id', '=', analysisId).executeTakeFirstOrThrow()).uploadFile!.split('/')[0]
 
 describe('Aufbewahrung', () => {
@@ -61,6 +67,9 @@ describe('Aufbewahrung', () => {
     const lonely = await uploadAndFinish('Einzeln', 400)
     // aktueller Stand von „Anlage“ ist `current` (40 Tage) – älter als die Frist, bleibt trotzdem
     expect(await uploadDirs(old.projectId)).toHaveLength(4)
+    const dirs = await uploadDirs(old.projectId)
+    // der jüngste Ordner bleibt jung: auch ohne Eintrag in der Datenbank würde er nicht gelöscht
+    await age(...dirs.map(dir => join(ctx.dataDir, 'uploads', String(old.projectId), dir)))
 
     const result = await runRetention(ctx, NOW)
     expect(result.analyses).toBe(2)
@@ -85,11 +94,17 @@ describe('Aufbewahrung', () => {
     await utimes(join(incoming, 'alt.part'), new Date(NOW.getTime() - 2 * DAY), new Date(NOW.getTime() - 2 * DAY))
     await writeFile(join(incoming, 'neu.part'), 'x')
     await utimes(join(incoming, 'neu.part'), NOW, NOW)
+    await age(join(ctx.dataDir, 'uploads', '99999'), join(ctx.dataDir, 'work', '123'))
+    // junge Ordner bleiben (Hochladen bzw. Analyse kann gerade begonnen haben)
+    await mkdir(join(ctx.dataDir, 'uploads', '99998'), { recursive: true })
+    await mkdir(join(ctx.dataDir, 'work', '124'), { recursive: true })
 
-    const result = await runRetention(ctx, NOW)
+    const result = await runRetention(ctx, new Date())
     expect(result).toMatchObject({ analyses: 0, workFolders: 1 })
     expect(existsSync(join(ctx.dataDir, 'uploads', '99999'))).toBe(false)
     expect(existsSync(join(ctx.dataDir, 'work', '123'))).toBe(false)
+    expect(existsSync(join(ctx.dataDir, 'uploads', '99998'))).toBe(true)
+    expect(existsSync(join(ctx.dataDir, 'work', '124'))).toBe(true)
     expect(await readdir(incoming)).toEqual(['neu.part'])
     expect(await uploadDirs(kept.projectId)).toHaveLength(1)
   })

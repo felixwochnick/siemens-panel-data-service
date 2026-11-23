@@ -267,7 +267,11 @@ export async function deleteAnalysis(ctx: AppContext, actor: Actor, id: number, 
         .orderBy('id', 'desc')
         .top(1)
         .executeTakeFirst()
-      await trx.updateTable('pds.projects').set({ currentAnalysisId: previous?.id ?? null }).where('id', '=', analysis.projectId).execute()
+      // Nur, wenn inzwischen kein neuerer Stand gespeichert wurde (SQL Server liest ohne Sperre)
+      await trx.updateTable('pds.projects').set({ currentAnalysisId: previous?.id ?? null })
+        .where('id', '=', analysis.projectId)
+        .where('currentAnalysisId', '=', id)
+        .execute()
     }
     // Ergebnisse und Ereignisse per Cascade; Status nochmals prüfen (könnte gerade gestartet sein)
     const result = await trx.deleteFrom('pds.analyses').where('id', '=', id).where('status', '<>', 'running').executeTakeFirst()

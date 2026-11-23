@@ -104,9 +104,14 @@ export async function deleteProject(ctx: AppContext, actor: Actor, id: number, v
   await ctx.db.transaction().execute(async (trx) => {
     const running = await trx.selectFrom('pds.analyses').select('id').where('projectId', '=', id).where('status', '=', 'running').executeTakeFirst()
     if (running) throw new ServiceError(409, 'analysis_running')
-    // Verweis auf die aktuelle Analyse zuerst lösen (Fremdschlüssel ohne Cascade), dann alles per Cascade
+    // Verweis auf die aktuelle Analyse zuerst lösen (Fremdschlüssel ohne Cascade), dann alles per Cascade. Die
+    // Bedingung steht nochmals in derselben Anweisung: die Warteschlange könnte gerade einen Auftrag übernommen haben
     await trx.updateTable('pds.projects').set({ currentAnalysisId: null }).where('id', '=', id).execute()
-    await trx.deleteFrom('pds.projects').where('id', '=', id).execute()
+    const deleted = await trx.deleteFrom('pds.projects')
+      .where('id', '=', id)
+      .where(eb => eb.not(eb.exists(eb.selectFrom('pds.analyses as a').select('a.id').where('a.projectId', '=', id).where('a.status', '=', 'running'))))
+      .executeTakeFirst()
+    if (Number(deleted.numDeletedRows) === 0) throw new ServiceError(409, 'analysis_running')
   })
   if (project.source === 'upload') await rm(uploadDir(ctx.dataDir, id), { recursive: true, force: true }).catch(() => {})
   await writeAudit(ctx.db, actor.id, 'project_deleted', { projectId: id, name: project.name, source: project.source, path: project.path, via })

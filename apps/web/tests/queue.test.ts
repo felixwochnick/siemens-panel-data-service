@@ -16,6 +16,7 @@ import { uploadProject } from '../server/services/uploads'
 import { defaultConnector } from '../server/services/worker-client'
 import type { WorkerConnector } from '../server/services/worker-client'
 import { createAppTestDatabase, createTestContext, createUser, fakeWorkerSpec, readFixture, settingsInput, tempFolder, waitFor } from './helpers/db'
+import { withFaults } from './helpers/faults'
 import type { TestContext } from './helpers/db'
 
 let t: TestDatabase<AppDatabase>
@@ -184,6 +185,24 @@ describe('Warteschlange mit dem Ersatz-Worker', () => {
     expect(await finished(analysis.id)).toMatchObject({ status: 'succeeded' })
     expect(methods.filter(m => m === 'status').length).toBeGreaterThanOrEqual(3)
     expect(methods.indexOf('analyze')).toBeGreaterThan(methods.lastIndexOf('status') - 1)
+  })
+
+  it('Abschluss bei gestörter Datenbank: wird nachgetragen, danach läuft der nächste Auftrag', async () => {
+    const faults = withFaults(t.db)
+    ctx = await createTestContext(faults.db, { workerSpec: fakeWorkerSpec({ FAKE_WORKER_FAIL: 'open_failed', FAKE_WORKER_DELAY_MS: '300' }) })
+    ctx.worker.start()
+    ctx.queue.start()
+    const first = await upload(ctx, 'Eins.zw1')
+    await waitFor(async () => (await getAnalysis(t.db, member, first.analysis.id)).status === 'running')
+    // Alle Änderungen an pds.analyses scheitern (wie eine abgerissene Verbindung)
+    faults.fail('UpdateQueryNode', 'analyses')
+    const unfinished = (ctx.queue as unknown as { unfinished: Map<number, unknown> }).unfinished
+    await waitFor(async () => unfinished.size > 0)
+    expect((await getAnalysis(t.db, member, first.analysis.id)).status).toBe('running')
+    faults.heal()
+    expect(await finished(first.analysis.id)).toMatchObject({ status: 'failed', errorCode: 'open_failed' })
+    const second = await upload(ctx, 'Zwei.zw1')
+    expect((await finished(second.analysis.id)).status).toBe('failed')
   })
 
   it('doppelter Auftrag ⇒ 409 analysis_already_queued, kein zweiter Eintrag', async () => {

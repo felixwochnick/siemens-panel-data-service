@@ -70,6 +70,11 @@ interface Final {
  */
 export class AnalysisQueue {
   private active: { id: number, controller: AbortController } | null = null
+  /**
+   * Analysen dieses Prozesses, deren Abschluss die Datenbank nicht angenommen hat: Die Zeile steht noch auf `running`
+   * und sperrt per eindeutigem Index jede weitere Analyse. Die Schleife trägt das Ergebnis vor dem nächsten Auftrag nach.
+   */
+  private readonly unfinished = new Map<number, Final & { finishedAt: Date }>()
   private loop: Promise<void> | null = null
   private stopped = false
   private kicked = false
@@ -135,12 +140,18 @@ export class AnalysisQueue {
       try {
         // Ein Anstoß zählt für genau eine Runde (sonst liefe die Schleife ohne Worker im Kreis)
         this.kicked = false
+        if (this.unfinished.size) await this.saveUnfinished()
         if (!this.options.worker.connected) {
           await this.wait(this.options.pollIntervalMs ?? 5000)
           continue
         }
         const job = await this.claim()
         if (job === 'retry') continue
+        // Während der Übernahme beendet: Auftrag zurück in die Warteschlange
+        if (job && typeof job === 'object' && this.stopped) {
+          await this.release(job.id)
+          break
+        }
         if (job === 'busy') {
           await this.wait(this.options.pollIntervalMs ?? 5000)
           continue
@@ -158,6 +169,25 @@ export class AnalysisQueue {
         errorDelay = Math.min(errorDelay * 2, 60_000)
       }
     }
+  }
+
+  /** Abschlüsse nachtragen, die die Datenbank nicht angenommen hatte; wirft bei weiterem Fehler (Schleife wartet) */
+  private async saveUnfinished(): Promise<void> {
+    for (const [id, values] of [...this.unfinished]) {
+      await this.writeFinal(id, values)
+      this.unfinished.delete(id)
+      console.info(`[analysis ${id}] Abschluss nachgetragen`)
+    }
+  }
+
+  /** Übernommenen Auftrag wieder freigeben (Beenden während der Übernahme) */
+  private async release(id: number): Promise<void> {
+    await this.options.db.updateTable('pds.analyses')
+      .set({ status: 'queued', startedAt: null, stage: null })
+      .where('id', '=', id)
+      .where('status', '=', 'running')
+      .execute()
+      .catch(() => {})
   }
 
   /** Warten bis Zeit um, Anstoß, Änderung der Worker-Verbindung oder Beenden */
@@ -243,6 +273,14 @@ export class AnalysisQueue {
       printEvent(event, row.at)
     }
     let log = rawLog
+    // Stufen nacheinander: ein später ankommendes progress darf eine neuere Stufe nicht überschreiben
+    let stages = Promise.resolve()
+    const setStage = (stage: AnalysisStage) => {
+      stages = stages.then(() => this.setStage(id, stage))
+      return stages
+    }
+    // Zeitlimit während einer Worker-Anfrage ⇒ Worker hängt womöglich in EPLAN und wird neu gestartet
+    let inWorker = false
     let timeout: ReturnType<typeof setTimeout> | undefined
     const workDir = join(this.options.dataDir, 'work', String(id))
     let final: Final
@@ -270,10 +308,10 @@ export class AnalysisQueue {
         const folder = settings.folder.trim()
         if (!folder) throw new AnalysisError('folder_not_configured')
         if (settings.source === 'network') {
-          await this.setStage(id, 'connecting_drive')
+          await setStage('connecting_drive')
           await ensureFolderAvailable({ drive: this.options.drive }, settings, loaded.unreadable, 'always', log, signal)
         }
-        await this.setStage(id, 'copying')
+        await setStage('copying')
         const resolved = resolveInFolder(folder, project.path ?? '')
         if (!resolved) throw new AnalysisError('project_file_missing', project.path ?? '')
         sourceModified = await projectModified(resolved.absolutePath, project.fileKind, signal).catch((error: unknown) => {
@@ -295,22 +333,24 @@ export class AnalysisQueue {
       signal.throwIfAborted()
 
       // 2. Worker: einrichten (EPLAN-Pfade) und Rohdaten schreiben lassen
-      await this.setStage(id, 'configuring')
+      await setStage('configuring')
+      inWorker = true
       const { restarted } = await worker.configure(settings.eplan, { signal })
       if (restarted) log({ level: 'info', code: 'worker_restarted' })
       const outputFile = join(workDir, 'raw.json')
       await worker.analyze({ projectPath, workFolder: workDir, outputFile, openMode: settings.eplan.openMode }, {
         signal,
         onProgress: (stage) => {
-          if ((WORKER_STAGES as readonly string[]).includes(stage)) void this.setStage(id, stage as AnalysisStage)
+          if ((WORKER_STAGES as readonly string[]).includes(stage)) void setStage(stage as AnalysisStage)
         },
         onLog: entry => log(KNOWN_EVENT_CODES.has(entry.code)
           ? { level: entry.level, code: entry.code, detail: entry.message || undefined }
           : { level: entry.level, code: 'worker_log', params: { code: entry.code.slice(0, 100) }, detail: entry.message || undefined }),
       })
+      inWorker = false
 
       // 3. Rohdaten auswerten
-      await this.setStage(id, 'analyzing')
+      await setStage('analyzing')
       const { raw, result } = await readAndAnalyze(outputFile)
       log({ level: 'info', code: 'raw_read', params: { pages: raw.pages.length, connections: raw.connections.length } })
       for (const notice of result.notices) log({ level: notice.level, code: notice.code, params: notice.params })
@@ -318,7 +358,7 @@ export class AnalysisQueue {
 
       // 4. Speichern – nicht mehr abbrechen (eine Transaktion; Zeitlimit gilt bis hierher)
       clearTimeout(timeout)
-      await this.setStage(id, 'saving')
+      await setStage('saving')
       await events.flush()
       // Abschluss-Ereignisse in derselben Transaktion: wer `succeeded` sieht, findet auch sie
       const closing: LogEvent[] = [
@@ -357,7 +397,7 @@ export class AnalysisQueue {
         log({ level: 'error', code: final.errorCode ?? 'unexpected_error', detail: final.errorDetail ?? undefined })
         log({ level: 'error', code: 'analysis_failed', params: { code: final.errorCode ?? '' } })
       }
-      if (final.errorCode === 'timeout') {
+      if (final.errorCode === 'timeout' && inWorker) {
         // Der Worker hängt womöglich noch in EPLAN: beenden, der Dienst bzw. der Client startet ihn neu
         await worker.restart().catch(() => {})
         log({ level: 'info', code: 'worker_restarted' })
@@ -378,33 +418,44 @@ export class AnalysisQueue {
       if (attempt) await sleep(250 * 2 ** (attempt - 1))
       await events.flush()
     }
+    if (events.size || events.dropped)
+      console.error(`[analysis ${id}] ${events.size + events.dropped} Ereignisse nicht gespeichert (nur auf stdout)`)
+    await stages
     if (!saved) await this.saveFinal(id, final)
     this.active = null
   }
 
-  /** Abschluss einer gescheiterten oder abgebrochenen Analyse; mehrfach versucht (die Zeile sperrt sonst `running`) */
+  /**
+   * Abschluss einer gescheiterten oder abgebrochenen Analyse; mehrfach versucht. Bleibt die Zeile trotzdem `running`,
+   * sperrte sie jede weitere Analyse: dann merken und vor dem nächsten Auftrag nachtragen (saveUnfinished).
+   */
   private async saveFinal(id: number, final: Final): Promise<void> {
-    const values: Updateable<AnalysesTable> = {
-      status: final.status,
-      stage: null,
-      finishedAt: this.now(),
-      errorCode: final.errorCode,
-      errorDetail: clip(final.errorDetail, 2000),
-    }
+    const values = { ...final, finishedAt: this.now() }
     for (let attempt = 0; ; attempt++) {
       try {
         if (attempt) await sleep(250 * 2 ** (attempt - 1))
-        await this.options.db.updateTable('pds.analyses').set(values).where('id', '=', id).where('status', '=', 'running').execute()
+        await this.writeFinal(id, values)
         return
       }
       catch (error) {
         if (attempt >= FINISH_RETRIES) {
-          // Bleibt `running`: der nächste Start des Servers markiert sie als abgebrochen
-          console.error(`[analysis ${id}] Abschluss konnte nicht gespeichert werden`, error)
+          console.error(`[analysis ${id}] Abschluss konnte nicht gespeichert werden; wird nachgetragen`, error)
+          this.unfinished.set(id, values)
           return
         }
       }
     }
+  }
+
+  private async writeFinal(id: number, final: Final & { finishedAt: Date }): Promise<void> {
+    const values: Updateable<AnalysesTable> = {
+      status: final.status,
+      stage: null,
+      finishedAt: final.finishedAt,
+      errorCode: final.errorCode,
+      errorDetail: clip(final.errorDetail, 2000),
+    }
+    await this.options.db.updateTable('pds.analyses').set(values).where('id', '=', id).where('status', '=', 'running').execute()
   }
 }
 

@@ -24,7 +24,9 @@ export async function runScheduledScan(ctx: AppContext): Promise<ScanRunResult> 
   const { settings, unreadable } = await loadSettings(ctx)
   if (!settings.folder.trim()) throw new ServiceError(400, 'folder_not_configured')
   const log: EventLogger = event => ctx.log(`[scheduler] ${event.code} ${JSON.stringify(event.params ?? {})}`)
-  await ensureFolderAvailable(ctx, settings, unreadable, 'always', log)
+  // Neu verbinden trennt das Laufwerk kurz – nicht, während eine Analyse womöglich gerade davon kopiert
+  const running = await ctx.db.selectFrom('pds.analyses').select('id').where('status', '=', 'running').executeTakeFirst()
+  await ensureFolderAvailable(ctx, settings, unreadable, running ? 'if_needed' : 'always', log)
   const scan = await scanFolder(settings)
   const states = await folderProjectStates(ctx.db)
   let queued = 0

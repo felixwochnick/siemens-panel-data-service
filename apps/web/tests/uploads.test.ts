@@ -78,7 +78,7 @@ describe('Hochladen', () => {
   it('anderes Format ⇒ 400 upload_invalid_type; Pfade im Namen ⇒ 400 upload_invalid_name', async () => {
     await expect(uploadProject(ctx, member, { fileName: 'Anlage.elk', body: body(10) })).rejects.toMatchObject({ statusCode: 400, message: 'upload_invalid_type' })
     await expect(uploadProject(ctx, member, { fileName: 'Anlage.zw1.txt', body: body(10) })).rejects.toMatchObject({ statusCode: 400, message: 'upload_invalid_type' })
-    for (const name of ['../x.zw1', 'a/b.zw1', 'a\\b.zw1', '.zw1', 'a:b.zw1'])
+    for (const name of ['../x.zw1', 'a/b.zw1', 'a\\b.zw1', '.zw1', 'a:b.zw1', 'NUL.zw1', 'com1.zw1'])
       expect(() => checkUploadName(name), name).toThrow(expect.objectContaining({ message: expect.stringMatching(/^upload_invalid_(name|type)$/) }))
     expect(checkUploadName('Anlage.ZW1')).toEqual({ name: 'Anlage', fileName: 'Anlage.zw1' })
     await expect(uploadProject(ctx, member, { fileName: 'Leer.zw1', body: body(0) })).rejects.toMatchObject({ statusCode: 400, message: 'upload_empty' })

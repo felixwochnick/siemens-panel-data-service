@@ -165,7 +165,10 @@ export const defaultConnector: WorkerConnector = (spec, log) => {
     lastError = error
     closed(error)
   })
-  child.on('close', (code, signal) => closed(lastError ?? (code === 0 ? undefined : new Error(`worker exited (${signal ?? code})`))))
+  // 'exit' statt nur 'close': erbt ein Enkelprozess stdout, käme 'close' womöglich nie
+  const exited = (code: number | null, signal: NodeJS.Signals | null) => closed(lastError ?? (code === 0 ? undefined : new Error(`worker exited (${signal ?? code})`)))
+  child.on('exit', exited)
+  child.on('close', exited)
   return {
     write: (line) => {
       if (child.stdin.writable) child.stdin.write(line)
@@ -177,7 +180,7 @@ export const defaultConnector: WorkerConnector = (spec, log) => {
       closeListener = listener
     },
     end: () => void child.stdin.end(),
-    kill: () => void child.kill(),
+    kill: () => void child.kill('SIGKILL'),
   }
 }
 
@@ -329,9 +332,7 @@ export class WorkerClient {
     if (!conn) return
     const closed = this.waitForClose(this.seq)
     conn.end()
-    const timer = setTimeout(() => conn.kill(), this.options.exitTimeoutMs ?? 10_000)
-    await closed
-    clearTimeout(timer)
+    await this.awaitClose(conn, closed)
   }
 
   /** Wartet auf eine Verbindung; false bei Zeitüberschreitung, Abbruch oder ohne Worker */
@@ -459,9 +460,35 @@ export class WorkerClient {
     catch {
       // Verbindung schon weg
     }
-    const timer = setTimeout(() => conn.kill(), this.options.exitTimeoutMs ?? 10_000)
-    await closed
-    clearTimeout(timer)
+    await this.awaitClose(conn, closed)
+  }
+
+  /**
+   * Auf das Ende einer Verbindung warten: nach exitTimeoutMs hart beenden, nach der doppelten Zeit nicht länger warten
+   * (die Verbindung gilt dann als verloren; ihr spätes Ende wird über `seq` ignoriert)
+   */
+  private async awaitClose(conn: WorkerConnection, closed: Promise<void>): Promise<void> {
+    const limit = this.options.exitTimeoutMs ?? 10_000
+    let kill: ReturnType<typeof setTimeout> | undefined
+    let giveUp: ReturnType<typeof setTimeout> | undefined
+    await Promise.race([
+      closed,
+      new Promise<void>((resolvePromise) => {
+        kill = setTimeout(() => conn.kill(), limit)
+        giveUp = setTimeout(() => {
+          if (this.conn === conn) {
+            // Neue Nummer: ein spätes Ende oder späte Daten dieser Verbindung gelten danach als veraltet
+            const waiters = this.closeWaiters.get(this.seq) ?? []
+            this.closeWaiters.delete(this.seq)
+            this.handleClose(++this.seq, new Error('worker did not exit'))
+            for (const waiter of waiters) waiter()
+          }
+          resolvePromise()
+        }, limit * 2)
+      }),
+    ])
+    clearTimeout(kill)
+    clearTimeout(giveUp)
   }
 
   private setState(state: WorkerState) {

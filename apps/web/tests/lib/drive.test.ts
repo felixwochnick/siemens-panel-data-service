@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createWindowsDriveConnector, windowsCommandPaths } from '../../server/lib/drive'
+import { createWindowsDriveConnector, serializeConnector, windowsCommandPaths } from '../../server/lib/drive'
 import { AnalysisError } from '../../server/lib/errors'
 import { ANALYSIS_ERROR_CODES, ANALYSIS_EVENT_CODES, CHECK_CODES } from '../../shared/types/api'
 import type { ProcessSpawner, SpawnResult } from '../../server/lib/drive'
@@ -181,6 +181,28 @@ describe('createWindowsDriveConnector', () => {
     expect(ANALYSIS_EVENT_CODES).toEqual(expect.arrayContaining(['drive_connecting', 'drive_disconnect_fallback', 'drive_connected']))
     expect(ANALYSIS_ERROR_CODES).toEqual(expect.arrayContaining(['network_drive_unsupported', 'network_drive_failed', 'drive_unavailable']))
     expect(CHECK_CODES).toEqual(expect.arrayContaining(['drive_ok', 'drive_unsupported', 'drive_failed', 'drive_unavailable']))
+  })
+})
+
+describe('serializeConnector', () => {
+  it('verbindet nacheinander, auch wenn ein Versuch scheitert', async () => {
+    const order: string[] = []
+    let running = 0
+    const inner = {
+      async connect(drive: NetworkDriveSettings) {
+        running++
+        expect(running).toBe(1)
+        order.push(`start ${drive.mapping}`)
+        await new Promise(resolve => setTimeout(resolve, 10))
+        order.push(`end ${drive.mapping}`)
+        running--
+        if (drive.mapping === 'A') throw new AnalysisError('network_drive_failed')
+      },
+    }
+    const serial = serializeConnector(inner)
+    const results = await Promise.allSettled(['A', 'B'].map(mapping => serial.connect(drive({ mapping }), () => {})))
+    expect(results.map(r => r.status)).toEqual(['rejected', 'fulfilled'])
+    expect(order).toEqual(['start A', 'end A', 'start B', 'end B'])
   })
 })
 

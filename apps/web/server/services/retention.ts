@@ -16,6 +16,17 @@ export interface RetentionResult {
 const DAY_MS = 86_400_000
 /** Abgebrochene Uploads (uploads/.incoming) älter als das */
 const INCOMING_MAX_AGE_MS = DAY_MS
+/**
+ * Jüngere Upload- und Arbeitsordner bleiben: Die Datenbank kennt sie womöglich noch nicht (Hochladen verschiebt die
+ * Datei vor dem Einreihen, eine Analyse legt ihren Arbeitsordner direkt nach der Übernahme an)
+ */
+const MIN_AGE_MS = 60 * 60_000
+
+/** Ordner/Datei älter als MIN_AGE_MS (unlesbar zählt als jung: lieber stehen lassen) */
+async function isOld(path: string, now: Date): Promise<boolean> {
+  const info = await stat(path).catch(() => null)
+  return !!info && now.getTime() - info.mtimeMs > MIN_AGE_MS
+}
 
 async function listDir(path: string): Promise<string[]> {
   try {
@@ -90,12 +101,12 @@ export async function runRetention(ctx: AppContext, now: Date = ctx.now()): Prom
     }
     const wanted = keep.get(name)
     if (!wanted) {
-      // Projekt gibt es nicht mehr
-      await rm(path, { recursive: true, force: true }).catch(() => {})
+      // Projekt gibt es nicht mehr (oder es wird gerade angelegt: dann ist der Ordner jung)
+      if (await isOld(path, now)) await rm(path, { recursive: true, force: true }).catch(() => {})
       continue
     }
     for (const entry of await listDir(path)) {
-      if (wanted.has(entry)) continue
+      if (wanted.has(entry) || !(await isOld(join(path, entry), now))) continue
       await rm(join(path, entry), { recursive: true, force: true }).catch(() => {})
       uploads++
     }
@@ -106,8 +117,9 @@ export async function runRetention(ctx: AppContext, now: Date = ctx.now()): Prom
   const workRoot = join(ctx.dataDir, 'work')
   const running = await db.selectFrom('pds.analyses').select('id').where('status', '=', 'running').execute()
   const active = new Set(running.map(row => String(row.id)))
+  if (ctx.queue.runningId !== null) active.add(String(ctx.queue.runningId))
   for (const name of await listDir(workRoot)) {
-    if (active.has(name)) continue
+    if (active.has(name) || !(await isOld(join(workRoot, name), now))) continue
     await rm(join(workRoot, name), { recursive: true, force: true }).catch(() => {})
     workFolders++
   }

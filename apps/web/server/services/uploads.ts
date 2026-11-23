@@ -16,6 +16,9 @@ import { ServiceError } from './errors'
 import { findProject, uploadDir } from './projects'
 import { loadSettings } from './settings'
 
+/** Gerätenamen, die Windows nicht als Dateinamen zulässt (auch mit Endung) */
+const RESERVED_NAME = /^(?:con|prn|aux|nul|com\d|lpt\d)$/i
+
 /** Zeichen, die Windows in Dateinamen nicht erlaubt (plus Steuerzeichen) */
 // eslint-disable-next-line no-control-regex
 const FORBIDDEN_NAME = /[\\/:*?"<>|\u0000-\u001F]/
@@ -37,7 +40,7 @@ export function checkUploadName(fileName: string): { name: string, fileName: str
   const trimmed = (fileName ?? '').trim()
   if (extname(trimmed).toLowerCase() !== '.zw1') throw new ServiceError(400, 'upload_invalid_type')
   const name = basename(trimmed, extname(trimmed)).trim()
-  if (!name || trimmed !== basename(trimmed) || FORBIDDEN_NAME.test(trimmed) || name.endsWith('.') || trimmed.length > 200)
+  if (!name || trimmed !== basename(trimmed) || FORBIDDEN_NAME.test(trimmed) || name.endsWith('.') || RESERVED_NAME.test(name) || trimmed.length > 200)
     throw new ServiceError(400, 'upload_invalid_name')
   return { name, fileName: `${name}.zw1` }
 }
@@ -104,6 +107,8 @@ export async function uploadProject(ctx: AppContext, actor: Actor, input: Upload
 
     // 3. Auftrag (409, wenn inzwischen einer wartet), dann das Projekt auf die neue Datei zeigen lassen
     const analysisId = await enqueueAnalysis(ctx.db, { projectId, trigger: 'upload', userId: actor.id, uploadFile, now })
+    // Ab hier braucht der Auftrag die Datei: bei späteren Fehlern nicht mehr löschen
+    finalDir = undefined
     await ctx.db.updateTable('pds.projects').set({ uploadFile, name, sourceModified: now, updatedAt: now }).where('id', '=', projectId).execute()
     await writeAudit(ctx.db, actor.id, 'project_uploaded', { projectId, analysisId, fileName, size: counter.size(), via })
     ctx.queue.kick()

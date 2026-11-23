@@ -117,6 +117,21 @@ const CONNECT_SCRIPT = [
 ].join('\n')
 
 /**
+ * Verbindungen nacheinander: Warteschlange, Zeitplan und Verbindungstest dürfen das Laufwerk nicht gleichzeitig
+ * trennen und neu verbinden
+ */
+export function serializeConnector(connector: DriveConnector): DriveConnector {
+  let chain: Promise<unknown> = Promise.resolve()
+  return {
+    connect(drive, log, signal) {
+      const next = chain.then(() => connector.connect(drive, log, signal))
+      chain = next.catch(() => {})
+      return next
+    },
+  }
+}
+
+/**
  * Netzlaufwerk unter Windows: bestehende Verbindung trennen, neu verbinden (mit Laufwerksbuchstabe oder nur
  * UNC-Verbindung), danach Erreichbarkeit prüfen. Auf anderen Plattformen ⇒ AnalysisError('network_drive_unsupported').
  */

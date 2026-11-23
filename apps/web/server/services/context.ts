@@ -1,6 +1,6 @@
 import type { Kysely } from 'kysely'
 import type { AppDatabase } from '../database/types'
-import { createWindowsDriveConnector } from '../lib/drive'
+import { createWindowsDriveConnector, serializeConnector } from '../lib/drive'
 import type { DriveConnector } from '../lib/drive'
 import { AnalysisQueue } from './queue'
 import type { QueueOptions } from './queue'
@@ -44,7 +44,7 @@ export function createAppContext(options: AppContextOptions): AppContext {
   const { db, secretKey, dataDir } = options
   const log = options.log ?? ((line: string) => console.info(line))
   const now = options.now ?? (() => new Date())
-  const drive = options.drive ?? createWindowsDriveConnector()
+  const drive = serializeConnector(options.drive ?? createWindowsDriveConnector())
   const worker = new WorkerClient({ spec: options.workerSpec ?? null, log, now, ...options.worker })
   const queue = new AnalysisQueue({ db, secretKey, dataDir, worker, drive, now, print: log, ...options.queue })
   const ctx: AppContext = {
