@@ -66,6 +66,18 @@ describe(`Migrationen (${TEST_DIALECT})`, () => {
       .rejects.toThrow(/UNIQUE/i)
   })
 
+  it('Zeitpunkte behalten ihre Millisekunden (Date als datetime2, nicht datetime)', async () => {
+    const { id } = await t.db.insertInto('core.users').values({ issuer: 'https://idp', subject: 'ms', email: null, displayName: 'Ms' })
+      .output('inserted.id').executeTakeFirstOrThrow()
+    // .315 würde als datetime auf .317 gerundet
+    const expiresAt = new Date('2026-11-23T15:35:39.315Z')
+    await t.db.insertInto('core.sessions').values({ userId: id, expiresAt, userAgent: null }).execute()
+    const session = await t.db.selectFrom('core.sessions').where('userId', '=', id).select('expiresAt').executeTakeFirstOrThrow()
+    expect(new Date(session.expiresAt).toISOString()).toBe(expiresAt.toISOString())
+    const found = await t.db.selectFrom('core.sessions').where('expiresAt', '=', expiresAt).select('id').execute()
+    expect(found).toHaveLength(1)
+  })
+
   it('löscht Sessions mit dem Benutzer', async () => {
     const { id } = await t.db.insertInto('core.users').values({ issuer: 'https://idp', subject: 'del', email: null, displayName: 'Del' })
       .output('inserted.id').executeTakeFirstOrThrow()

@@ -93,6 +93,9 @@ export function createDatabase<DB>(url: string, options: { poolMax?: number } = 
       tarn: { ...Tarn, options: { min: 0, max: options.poolMax ?? 10 } },
       tedious: {
         ...Tedious,
+        // Kysely schickt Date als `datetime` (Raster 1/300 s: .315 wird .317) – Vergleiche mit Dateizeiten würden so
+        // falsch „geändert“ melden. Als `datetime2` bleiben die Millisekunden der Spalten datetime2(3) exakt.
+        TYPES: { ...Tedious.TYPES, DateTime: Tedious.TYPES.DateTime2 },
         connectionFactory: () => new Tedious.Connection({
           server: cfg.server,
           authentication: { type: 'default', options: { userName: cfg.user, password: cfg.password } },
