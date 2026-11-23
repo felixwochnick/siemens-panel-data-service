@@ -160,6 +160,7 @@
     "upload_invalid_type": "Bitte ein Projektarchiv im Format .zw1 hochladen.",
     "upload_invalid_name": "Der Dateiname ist ungültig.",
     "upload_too_large": "Die Datei ist zu groß (höchstens {maxMb} MB).",
+    "upload_name_too_long": "Der Projektname ist zu lang (höchstens {max} Zeichen); bitte die Datei umbenennen.",
     "upload_empty": "Die Datei ist leer.",
     "worker_not_configured": "Es ist kein EPLAN-Worker eingestellt.",
     "worker_unreachable": "Der EPLAN-Worker ist nicht erreichbar.",

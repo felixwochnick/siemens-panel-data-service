@@ -33,15 +33,22 @@ export interface UploadInput {
 }
 
 /**
+ * Längster Projektname beim Hochladen. Der Worker (.NET Framework, EPLAN) kennt keine langen Pfade: Unter
+ * `…\\work\\<id>\\restore\\<Name>.edb\\…` bliebe sonst kein Platz für die Dateien im Projektordner (MAX_PATH 260).
+ */
+export const MAX_UPLOAD_NAME = 80
+
+/**
  * Dateiname prüfen: nur `.zw1` (400 `upload_invalid_type`), ein schlichter Name ohne Pfad und verbotene Zeichen
- * (400 `upload_invalid_name`). Liefert Name (ohne Endung) und den bereinigten Dateinamen.
+ * (400 `upload_invalid_name`), Name höchstens MAX_UPLOAD_NAME Zeichen (400 `upload_name_too_long`). Liefert Name (ohne Endung) und den bereinigten Dateinamen.
  */
 export function checkUploadName(fileName: string): { name: string, fileName: string } {
   const trimmed = (fileName ?? '').trim()
   if (extname(trimmed).toLowerCase() !== '.zw1') throw new ServiceError(400, 'upload_invalid_type')
   const name = basename(trimmed, extname(trimmed)).trim()
-  if (!name || trimmed !== basename(trimmed) || FORBIDDEN_NAME.test(trimmed) || name.endsWith('.') || RESERVED_NAME.test(name) || trimmed.length > 200)
+  if (!name || trimmed !== basename(trimmed) || FORBIDDEN_NAME.test(trimmed) || name.endsWith('.') || RESERVED_NAME.test(name))
     throw new ServiceError(400, 'upload_invalid_name')
+  if (name.length > MAX_UPLOAD_NAME) throw new ServiceError(400, 'upload_name_too_long', { max: MAX_UPLOAD_NAME })
   return { name, fileName: `${name}.zw1` }
 }
 

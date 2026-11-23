@@ -8,15 +8,19 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 const entrySource = fileURLToPath(new URL('../src/pds-entry.mjs', import.meta.url))
 
-// Ersatz für Nitros server/index.mjs: Shutdown wie in Nitro über process.once('SIGTERM'),
-// ein Intervall hält den Prozess wie ein lauschender Server am Leben
+// Ersatz für Nitros server/index.mjs: Shutdown wie in Nitro über process.once('SIGTERM'), ein lauschender
+// HTTP-Server wie bei Nitro (meldet sein Zeitlimit für ganze Anfragen) hält den Prozess am Leben
 const fakeServer = `
+import { createServer } from 'node:http'
 process.once('SIGTERM', () => {
   process.stdout.write('shutdown-ok\\n')
   process.exit(0)
 })
-setInterval(() => {}, 60_000)
-process.stdout.write('ready\\n')
+const server = createServer(() => {})
+server.listen(0, '127.0.0.1', () => {
+  process.stdout.write('requestTimeout=' + server.requestTimeout + '\\n')
+  process.stdout.write('ready\\n')
+})
 `
 
 const tempDirs: string[] = []
@@ -89,6 +93,8 @@ describe('pds-entry.mjs', () => {
       expect(code).toBe(0)
       expect(output.stdout).toContain('shutdown-ok')
       expect(duration).toBeLessThan(2_000)
+      // Große Uploads: kein Abbruch nach Nodes Standard von 300 s
+      expect(output.stdout).toContain(`requestTimeout=${2 * 60 * 60 * 1000}`)
     }
     finally {
       if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')

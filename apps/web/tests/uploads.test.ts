@@ -81,6 +81,9 @@ describe('Hochladen', () => {
     for (const name of ['../x.zw1', 'a/b.zw1', 'a\\b.zw1', '.zw1', 'a:b.zw1', 'NUL.zw1', 'com1.zw1'])
       expect(() => checkUploadName(name), name).toThrow(expect.objectContaining({ message: expect.stringMatching(/^upload_invalid_(name|type)$/) }))
     expect(checkUploadName('Anlage.ZW1')).toEqual({ name: 'Anlage', fileName: 'Anlage.zw1' })
+    // Pfadlänge unter Windows: Name höchstens 80 Zeichen
+    expect(checkUploadName(`${'a'.repeat(80)}.zw1`).name).toHaveLength(80)
+    expect(() => checkUploadName(`${'a'.repeat(81)}.zw1`)).toThrow(expect.objectContaining({ statusCode: 400, message: 'upload_name_too_long' }))
     await expect(uploadProject(ctx, member, { fileName: 'Leer.zw1', body: body(0) })).rejects.toMatchObject({ statusCode: 400, message: 'upload_empty' })
     expect((await listProjects(t.db, member)).total).toBe(0)
   })

@@ -287,7 +287,8 @@ export interface PdsSettings {
 export const SETTINGS_LIMITS = {
   analysisTimeoutMinutes: { min: 1, max: 1440 },
   retentionDays: { min: 1, max: 3650 },
-  uploadMaxMb: { min: 1, max: 10_240 },
+  // Höchstens 2 GiB: so viel lässt Caddy unter Windows für /api/projects/upload durch (windows/pds-common/src/render.rs)
+  uploadMaxMb: { min: 1, max: 2048 },
   filePatterns: { max: 20 },
 } as const
 
