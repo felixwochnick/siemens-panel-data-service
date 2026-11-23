@@ -187,6 +187,65 @@ describe('Warteschlange mit dem Ersatz-Worker', () => {
     expect(methods.indexOf('analyze')).toBeGreaterThan(methods.lastIndexOf('status') - 1)
   })
 
+  it('EPLAN-Start scheitert ⇒ failed/eplan_start_failed, Worker wird neu gestartet, nächster Auftrag läuft', async () => {
+    let connections = 0
+    // Im ersten Prozess scheitert der EPLAN-Start (bleibt dort gescheitert), im neu gestarteten nicht mehr
+    const connector: WorkerConnector = (spec, log) => defaultConnector(
+      spec.kind === 'spawn' ? { ...spec, env: { ...spec.env, ...(connections++ === 0 ? { FAKE_WORKER_START_FAIL: '1' } : {}) } } : spec,
+      log,
+    )
+    const c = await start({ worker: { connector } })
+    const first = await upload(c, 'Eins.zw1')
+    expect(await finished(first.analysis.id)).toMatchObject({ status: 'failed', errorCode: 'eplan_start_failed' })
+    const codes = (await listAnalysisEvents(t.db, member, first.analysis.id)).items.map(e => e.code)
+    expect(codes).toEqual(expect.arrayContaining(['eplan_start_failed', 'analysis_failed', 'worker_restarted']))
+
+    const second = await upload(c, 'Zwei.zw1')
+    expect(await finished(second.analysis.id)).toMatchObject({ status: 'succeeded' })
+    expect(connections).toBeGreaterThanOrEqual(2)
+  })
+
+  it('Worker länger als das Zeitlimit beschäftigt ohne eigene Analyse ⇒ Neustart, danach läuft der Auftrag', async () => {
+    let processes = 0
+    const methods: string[] = []
+    // Pipe-Worker im Speicher: Der erste Prozess hängt in einer verwaisten Analyse (immer busy), bis exit kommt
+    const connector: WorkerConnector = () => {
+      const stuck = processes++ === 0
+      let data: (chunk: string) => void = () => {}
+      let close: (error?: Error) => void = () => {}
+      const send = (message: unknown) => setTimeout(() => data(`${JSON.stringify(message)}\n`), 1)
+      send({ type: 'hello', protocol: 1, version: 'mem' })
+      return {
+        write: (line) => {
+          const message = JSON.parse(line) as { id: string, method: string, params: { outputFile?: string } }
+          methods.push(message.method)
+          if (message.method === 'status') send({ type: 'response', id: message.id, result: { eplan: 'ready', eplanVersion: null, busy: stuck, configured: true } })
+          else if (message.method === 'exit') {
+            send({ type: 'response', id: message.id, result: {} })
+            setTimeout(() => close(), 10)
+          }
+          else if (message.method === 'analyze') {
+            void writeFile(message.params.outputFile!, JSON.stringify(readFixture())).then(() => send({ type: 'response', id: message.id, result: { outputFile: message.params.outputFile } }))
+          }
+          else send({ type: 'response', id: message.id, result: {} })
+        },
+        onData: (listener) => {
+          data = listener
+        },
+        onClose: (listener) => {
+          close = listener
+        },
+        end: () => close(),
+        kill: () => close(),
+      }
+    }
+    const c = await start({ workerSpec: { kind: 'pipe', path: 'mem' }, worker: { connector }, queue: { pollIntervalMs: 50, timeoutMs: 1500 } })
+    const { analysis } = await upload(c)
+    expect(await finished(analysis.id)).toMatchObject({ status: 'succeeded' })
+    expect(methods).toContain('exit')
+    expect(processes).toBeGreaterThanOrEqual(2)
+  })
+
   it('Abschluss bei gestörter Datenbank: wird nachgetragen, danach läuft der nächste Auftrag', async () => {
     const faults = withFaults(t.db)
     ctx = await createTestContext(faults.db, { workerSpec: fakeWorkerSpec({ FAKE_WORKER_FAIL: 'open_failed', FAKE_WORKER_DELAY_MS: '300' }) })

@@ -79,6 +79,11 @@ export class AnalysisQueue {
   private stopped = false
   private kicked = false
   private wakeUp: (() => void) | null = null
+  /**
+   * Seit wann der Worker `busy` meldet, ohne dass dieser Prozess eine Analyse laufen hat (verwaiste Analyse nach einem
+   * Abbruch der Verbindung). Hängt EPLAN dabei, würde sonst jeder weitere Auftrag für immer warten.
+   */
+  private busySince: Date | null = null
   /** Analysen, die vor diesem Zeitpunkt begannen, stammen aus einem früheren Prozess (abortStale) */
   readonly createdAt: Date
   private readonly now: () => Date
@@ -222,7 +227,19 @@ export class AnalysisQueue {
       .executeTakeFirst()
     if (!next) return null
     const status = await worker.status(5000).catch(() => null)
-    if (!status || status.busy) return 'busy'
+    if (!status) return 'busy'
+    if (status.busy) {
+      await this.restartIfStuck()
+      return 'busy'
+    }
+    this.busySince = null
+    // EPLAN startet je Prozess nur einmal: Nach einem gescheiterten Start (z. B. Lizenzserver kurz weg) hilft nur ein
+    // neuer Worker-Prozess; sonst scheiterte jeder weitere Auftrag sofort
+    if (status.eplan === 'failed') {
+      console.warn('[queue] EPLAN-Start im Worker ist gescheitert – Worker wird neu gestartet')
+      await worker.restart().catch(() => {})
+      return 'busy'
+    }
     try {
       const result = await db.updateTable('pds.analyses')
         .set({ status: 'running', startedAt: this.now(), stage: 'preparing' })
@@ -236,6 +253,17 @@ export class AnalysisQueue {
       if (isUniqueViolation(error)) return null
       throw error
     }
+  }
+
+  /** Worker länger als das Zeitlimit einer Analyse beschäftigt, ohne dass hier eine läuft ⇒ neu starten */
+  private async restartIfStuck(): Promise<void> {
+    const now = this.now()
+    this.busySince ??= now
+    const limitMs = this.options.timeoutMs ?? (await loadSettings(this.options)).settings.analysisTimeoutMinutes * 60_000
+    if (now.getTime() - this.busySince.getTime() < limitMs) return
+    this.busySince = null
+    console.warn(`[queue] Worker seit über ${Math.round(limitMs / 1000)} s beschäftigt ohne Analyse dieses Prozesses – Neustart`)
+    await this.options.worker.restart().catch(() => {})
   }
 
   private async setStage(id: number, stage: AnalysisStage): Promise<void> {
@@ -397,8 +425,9 @@ export class AnalysisQueue {
         log({ level: 'error', code: final.errorCode ?? 'unexpected_error', detail: final.errorDetail ?? undefined })
         log({ level: 'error', code: 'analysis_failed', params: { code: final.errorCode ?? '' } })
       }
-      if (final.errorCode === 'timeout' && inWorker) {
-        // Der Worker hängt womöglich noch in EPLAN: beenden, der Dienst bzw. der Client startet ihn neu
+      // timeout: Der Worker hängt womöglich noch in EPLAN. eplan_start_failed: EPLAN startet je Prozess nur einmal,
+      // ohne neuen Prozess scheiterte jeder weitere Auftrag. Beenden, der Dienst bzw. der Client startet ihn neu.
+      if ((final.errorCode === 'timeout' || final.errorCode === 'eplan_start_failed') && inWorker) {
         await worker.restart().catch(() => {})
         log({ level: 'info', code: 'worker_restarted' })
       }

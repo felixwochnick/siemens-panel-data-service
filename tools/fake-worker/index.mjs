@@ -12,6 +12,7 @@
  *   FAKE_WORKER_DELAY_MS  Wartezeit je Stufe von analyze (Standard 0)
  *   FAKE_WORKER_FAIL      analyze antwortet mit diesem Fehlercode (z. B. open_failed)
  *   FAKE_WORKER_CRASH=1   Prozess endet mitten in analyze (Absturz)
+ *   FAKE_WORKER_START_FAIL=1  EPLAN-Start scheitert; wie beim echten Worker bleibt EPLAN in diesem Prozess gescheitert
  *   FAKE_WORKER_EPLAN_VERSION  gemeldete EPLAN-Version (Standard 2025.0.3)
  */
 import { existsSync } from 'node:fs'
@@ -28,6 +29,7 @@ const FALLBACK_FIXTURE = join(root, 'apps/web/tests/fixtures/raw-small.json')
 const delayMs = Math.max(0, Number(process.env.FAKE_WORKER_DELAY_MS ?? 0) || 0)
 const failCode = (process.env.FAKE_WORKER_FAIL ?? '').trim()
 const crash = process.env.FAKE_WORKER_CRASH === '1'
+const startFail = process.env.FAKE_WORKER_START_FAIL === '1'
 const eplanVersion = process.env.FAKE_WORKER_EPLAN_VERSION || '2025.0.3'
 
 /** Pfade aus configure; EPLAN „startet“ beim ersten analyze mit genau diesen */
@@ -40,7 +42,11 @@ const send = message => process.stdout.write(`${JSON.stringify(message)}\n`)
 const respond = (id, result) => send({ type: 'response', id, result })
 const fail = (id, code, message) => send({ type: 'response', id, error: { code, message } })
 const sleep = ms => new Promise(resolvePromise => setTimeout(resolvePromise, ms))
-const samePaths = (a, b) => a.platformBin === b.platformBin && a.productBin === b.productBin && a.applicationModifier === b.applicationModifier
+// Wie EplanPaths.Matches im echten Worker: ohne Groß-/Kleinschreibung und abschließenden Trenner
+const normalizePath = value => value.trim().replace(/[\\/]+$/, '').toLowerCase()
+const samePaths = (a, b) => normalizePath(a.platformBin) === normalizePath(b.platformBin)
+  && normalizePath(a.productBin) === normalizePath(b.productBin)
+  && a.applicationModifier.trim().toLowerCase() === b.applicationModifier.trim().toLowerCase()
 
 function fixturePath() {
   if (process.env.FAKE_WORKER_FIXTURE) return resolve(process.env.FAKE_WORKER_FIXTURE)
@@ -68,6 +74,12 @@ async function analyze(id, params) {
   // Wie der echte Worker: nur .elk (mit .edb) und .zw1
   const extension = extname(projectPath).toLowerCase()
   if (extension !== '.elk' && extension !== '.zw1') return fail(id, 'invalid_request', `unsupported file type ${extension}`)
+  // Wie der echte Worker: Projekt prüfen, bevor EPLAN startet
+  if (!existsSync(projectPath)) return fail(id, 'project_not_found', `not found: ${projectPath}`)
+  if (extension === '.elk' && !existsSync(join(dirname(projectPath), `${basename(projectPath, extname(projectPath))}.edb`)))
+    return fail(id, 'project_not_found', `.edb missing for ${basename(projectPath)}`)
+  // EPLAN lässt sich je Prozess nur einmal starten: ein gescheiterter Start bleibt gescheitert
+  if (eplan === 'failed') return fail(id, 'eplan_start_failed', 'simulated EPLAN start failure')
   busy = true
   try {
     const stage = async (name) => {
@@ -77,12 +89,13 @@ async function analyze(id, params) {
     if (eplan !== 'ready') {
       eplan = 'starting'
       await stage('starting_eplan')
-      eplan = 'ready'
       startedWith = { ...configured }
+      if (startFail) {
+        eplan = 'failed'
+        return fail(id, 'eplan_start_failed', 'simulated EPLAN start failure')
+      }
+      eplan = 'ready'
     }
-    if (!existsSync(projectPath)) return fail(id, 'project_not_found', `not found: ${projectPath}`)
-    if (extension === '.elk' && !existsSync(join(dirname(projectPath), `${basename(projectPath, extname(projectPath))}.edb`)))
-      return fail(id, 'project_not_found', `.edb missing for ${basename(projectPath)}`)
     if (extension === '.zw1') await stage('restoring')
     await stage('opening')
     if (crash) process.exit(70)
