@@ -1,0 +1,28 @@
+{
+  "settingsIssues": {
+    "required": "Pflichtfeld",
+    "invalid_value": "Ungültiger Wert",
+    "invalid_cron": "Kein gültiger Cron-Ausdruck",
+    "invalid_timezone": "Unbekannte Zeitzone",
+    "invalid_network_path": "Kein gültiger UNC-Pfad (\\\\Server\\Freigabe)",
+    "invalid_drive_letter": "Kein gültiger Laufwerksbuchstabe",
+    "invalid_pattern": "Ungültiges Dateimuster (nur Name mit * und ?)",
+    "out_of_range": "Wert außerhalb des erlaubten Bereichs",
+    "secret_unreadable": "Gespeichertes Passwort nicht lesbar – bitte neu eingeben",
+    "secret_required": "Nach Änderung von Freigabe oder Benutzer bitte das Passwort neu eingeben"
+  },
+  "checks": {
+    "drive_ok": "Netzlaufwerk verbunden",
+    "drive_unsupported": "Netzlaufwerke werden nur unter Windows unterstützt",
+    "drive_failed": "Netzlaufwerk konnte nicht verbunden werden",
+    "drive_unavailable": "Netzlaufwerk nach dem Verbinden nicht erreichbar",
+    "folder_ok": "Projektordner lesbar: {count} Projekte gefunden",
+    "folder_not_configured": "Kein Projektordner eingestellt",
+    "folder_not_found": "Projektordner nicht gefunden",
+    "folder_unreadable": "Projektordner nicht lesbar",
+    "worker_ok": "EPLAN-Worker erreichbar (EPLAN: {eplan})",
+    "worker_not_configured": "Kein EPLAN-Worker eingestellt",
+    "worker_unreachable": "EPLAN-Worker nicht erreichbar",
+    "worker_failed": "EPLAN konnte im Worker nicht gestartet werden"
+  }
+}

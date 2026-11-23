@@ -1,0 +1,28 @@
+{
+  "settingsIssues": {
+    "required": "Required",
+    "invalid_value": "Invalid value",
+    "invalid_cron": "Not a valid cron expression",
+    "invalid_timezone": "Unknown time zone",
+    "invalid_network_path": "Not a valid UNC path (\\\\server\\share)",
+    "invalid_drive_letter": "Not a valid drive letter",
+    "invalid_pattern": "Invalid file pattern (name only, with * and ?)",
+    "out_of_range": "Value out of the allowed range",
+    "secret_unreadable": "Stored password cannot be read – please enter it again",
+    "secret_required": "After changing the share or user, please enter the password again"
+  },
+  "checks": {
+    "drive_ok": "Network drive connected",
+    "drive_unsupported": "Network drives are only supported on Windows",
+    "drive_failed": "Network drive could not be connected",
+    "drive_unavailable": "Network drive not reachable after connecting",
+    "folder_ok": "Project folder readable: {count} projects found",
+    "folder_not_configured": "No project folder configured",
+    "folder_not_found": "Project folder not found",
+    "folder_unreadable": "Project folder not readable",
+    "worker_ok": "EPLAN worker reachable (EPLAN: {eplan})",
+    "worker_not_configured": "No EPLAN worker configured",
+    "worker_unreachable": "EPLAN worker not reachable",
+    "worker_failed": "EPLAN could not be started in the worker"
+  }
+}

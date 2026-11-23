@@ -1,0 +1,100 @@
+{
+  "analysisStatus": {
+    "queued": "Queued",
+    "running": "Running",
+    "succeeded": "Succeeded",
+    "failed": "Failed",
+    "aborted": "Aborted"
+  },
+  "analysisTrigger": {
+    "upload": "Uploaded",
+    "manual": "Manual",
+    "schedule": "Schedule",
+    "mcp": "AI assistant"
+  },
+  "analysisStage": {
+    "preparing": "Preparing",
+    "connecting_drive": "Connecting network drive",
+    "copying": "Copying project",
+    "configuring": "Configuring worker",
+    "starting_eplan": "Starting EPLAN",
+    "restoring": "Restoring archive",
+    "opening": "Opening project",
+    "reading": "Reading data",
+    "writing": "Writing raw data",
+    "analyzing": "Analyzing",
+    "saving": "Saving"
+  },
+  "logLevels": {
+    "debug": "Debug",
+    "info": "Info",
+    "warn": "Warning",
+    "error": "Error"
+  },
+  "projectSources": {
+    "upload": "Uploaded",
+    "folder": "Project folder"
+  },
+  "eplanStates": {
+    "not_started": "Not started",
+    "starting": "Starting",
+    "ready": "Ready",
+    "failed": "Failed"
+  },
+  "folderSkips": {
+    "edb_missing": "The .edb folder of the .elk file is missing",
+    "path_too_long": "Path too long"
+  },
+  "analysisEvents": {
+    "analysis_started": "Analysis started ({trigger})",
+    "drive_connecting": "Connecting network drive {target} to {networkPath}",
+    "drive_disconnect_fallback": "“net use /delete” returned {exitCode}; forcing removal of {target}",
+    "drive_connected": "Network drive {target} is available",
+    "project_copied": "Project copied to the work folder ({files} files)",
+    "worker_restarted": "EPLAN worker was restarted",
+    "raw_read": "Raw data read: {pages} pages, {connections} connections",
+    "results_saved": "Results saved: {connections} connections, {cables} cables, {shields} shields, {texts} texts",
+    "analysis_succeeded": "Analysis finished successfully",
+    "analysis_failed": "Analysis failed ({code})",
+    "analysis_aborted": "Analysis aborted ({code})",
+    "work_folder_not_removed": "The work folder could not be deleted",
+    "worker_log": "Message from the worker ({code})",
+    "project_unreadable": "Some project properties could not be read",
+    "page_unreadable": "Some pages could not be read",
+    "connection_unreadable": "Some connections could not be read completely",
+    "text_unreadable": "Some texts could not be read",
+    "line_unreadable": "Some graphical lines could not be read",
+    "shield_unreadable": "Some shield symbols could not be read",
+    "cable_unreadable": "Some cables could not be read completely",
+    "restore_cleanup_failed": "The restore folder of the worker could not be deleted",
+    "unmatched_hash_marks": "{count} # marks could not be assigned to a connection",
+    "unmatched_twist_ticks": "{count} twist symbols could not be assigned to a connection",
+    "wire_not_found": "Wire {id} of cable {cable} was not found",
+    "not_configured": "The worker is not configured (EPLAN paths missing)",
+    "eplan_start_failed": "EPLAN could not be started",
+    "project_not_found": "The worker did not find the project file (or its .edb folder)",
+    "restore_failed": "The archive could not be restored",
+    "archive_without_project": "The archive contains no project",
+    "open_failed": "The project could not be opened",
+    "read_failed": "The project data could not be read",
+    "write_failed": "The raw data could not be written",
+    "busy": "The worker is busy with another analysis",
+    "invalid_request": "The worker rejected the request as invalid",
+    "restart_required": "EPLAN runs in the worker with other paths; the worker must be restarted",
+    "timeout": "The analysis exceeded the time limit",
+    "worker_disconnected": "The connection to the EPLAN worker was lost",
+    "worker_error": "The EPLAN worker reported an unknown error",
+    "raw_unreadable": "The raw data (raw.json) could not be read",
+    "raw_invalid": "The raw data has an unexpected format",
+    "project_file_missing": "The project file no longer exists",
+    "copy_failed": "The project could not be copied to the work folder",
+    "folder_not_configured": "No project folder is configured",
+    "network_drive_unsupported": "Network drives are only supported on Windows",
+    "network_drive_failed": "The network drive could not be connected",
+    "drive_unavailable": "The network drive is not reachable after connecting",
+    "secret_unreadable": "The stored network drive password cannot be read",
+    "interrupted": "The analysis was interrupted because the service stopped",
+    "shutting_down": "The analysis was aborted because the service is stopping",
+    "unexpected_error": "Unexpected error"
+  }
+}
