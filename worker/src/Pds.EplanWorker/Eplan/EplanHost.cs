@@ -154,10 +154,11 @@ namespace Pds.EplanWorker.Eplan
             {
                 _logger.LogInformation("Starte EPLAN ({ProductBin}) ...", paths.ProductBin);
 
-                // Muss vor jedem Zugriff auf andere EPLAN-Typen passieren, damit die DLLs aus dem EPLAN-Bin-Ordner geladen werden
-                var resolver = new AssemblyResolver();
-                resolver.SetBinPaths(paths.PlatformBin, paths.ProductBin);
-                resolver.PinToEplan();
+                // Muss vor jedem Zugriff auf andere EPLAN-Typen passieren, damit die DLLs aus dem EPLAN-Bin-Ordner
+                // geladen werden. Der Starter selbst kommt aus der EPLAN-Installation (StarterAssembly), daher erst
+                // registrieren und dann in einer eigenen Methode auf seine Typen zugreifen.
+                StarterAssembly.Register(paths.PlatformBin);
+                PinToEplan(paths);
 
                 string version;
                 app = InitEplan(paths, out version);
@@ -213,6 +214,15 @@ namespace Pds.EplanWorker.Eplan
         }
 
         // Eigene Methoden ohne Inlining: EPLAN-Typen werden erst geladen, nachdem der AssemblyResolver aktiv ist
+        // (bzw. beim Starter: nachdem StarterAssembly registriert ist)
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void PinToEplan(EplanPaths paths)
+        {
+            var resolver = new AssemblyResolver();
+            resolver.SetBinPaths(paths.PlatformBin, paths.ProductBin);
+            resolver.PinToEplan();
+        }
+
         [MethodImpl(MethodImplOptions.NoInlining)]
         private object InitEplan(EplanPaths paths, out string version)
         {

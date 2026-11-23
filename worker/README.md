@@ -37,8 +37,9 @@ dotnet test worker/tests/Pds.EplanWorker.Tests
 ```
 
 Neue EPLAN-Zugriffe brauchen ein passendes Mitglied in `stubs/` (Signatur aus der EPLAN-API-Doku). Die EPLAN-DLLs
-werden nicht ausgeliefert, nur `Eplan.EplApi.Starteru.dll` liegt neben der exe und lädt die übrigen zur Laufzeit aus
-der EPLAN-Installation.
+werden nicht ausgeliefert: Den Starter `Eplan.EplApi.Starteru.dll` lädt der Worker aus dem Platform-Bin-Ordner
+(`configure`), falls er nicht neben der exe liegt (`Eplan/StarterAssembly.cs`); der Starter findet die übrigen DLLs
+der EPLAN-Installation selbst.
 
 ## Betriebsarten
 
