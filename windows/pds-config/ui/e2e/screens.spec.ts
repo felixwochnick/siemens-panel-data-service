@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test'
 // Jeder Bereich bei 1280×800 und 900×700, hell und dunkel, mit Beispieldaten (mock.ts).
 // Prüft Überschrift, keine waagerechte Scrollleiste, keine Konsolenfehler und keine Anfragen nach außen.
 // Bilder: test-results/screens/<bereich>-<breite>-<schema>.png (Fenster) und …-full.png (ganzer Inhalt).
-// Ohne Zusatz zeigt die Vorschau eine Installation auf SQL Server, mit `?fresh=1` eine neue mit SQLite.
+// Ohne Zusatz zeigt die Vorschau eine Installation auf SQL Server (Standard), mit `?fresh=1` eine neue mit SQLite.
 
 const SCREENS = 'test-results/screens'
 

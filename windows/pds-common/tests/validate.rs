@@ -119,10 +119,11 @@ fn valid_config() -> Setup {
     }
 }
 
-/// Gültig mit SQLite (Standard): ohne Server und ohne Datenbankpasswort.
+/// Gültig mit SQLite: ohne Server und ohne Datenbankpasswort.
 fn valid_sqlite() -> Setup {
     let mut setup = valid_config();
     setup.config.db = Default::default();
+    setup.config.db.kind = DbKind::Sqlite;
     setup.secrets.db_password = None;
     setup
 }
@@ -176,7 +177,7 @@ fn valid_acme_and_off_have_no_findings() {
 #[test]
 fn default_config_reports_what_is_missing() {
     // Teilweise Konfiguration ist erlaubt, sie meldet aber jede Lücke
-    // Mit SQLite (Standard) fehlt bei der Datenbank nichts
+    // Mit SQL Server (Standard) fehlen Server und Datenbankpasswort
     let config = Config::default();
     let secrets = Secrets::default();
     let paths = windows_paths();
@@ -197,6 +198,8 @@ fn default_config_reports_what_is_missing() {
         vec![
             ("public.host", "required"),
             ("tls", "certificate_missing"),
+            ("db.server", "required"),
+            ("db.password", "required"),
             ("oidc.tenant_id", "required"),
             ("oidc.client_id", "required"),
             ("oidc.client_secret", "oidc_client_secret_missing"),

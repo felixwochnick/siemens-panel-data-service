@@ -8,8 +8,9 @@ die Ergebnisse als Tabellen, die sie filtern und als `.xlsx` oder CSV herunterla
 
 Er läuft auf einem **Windows Server 2022 (x64)** mit zwei Windows-Diensten: dem **Web-Dienst** `pds` (Web-App,
 Warteschlange, Zeitplan, HTTPS-Proxy) und dem **EPLAN-Worker** `pds-eplan`, der die Projekte mit der EPLAN-API öffnet und
-dafür unter einem lizenzierten Benutzerkonto läuft. Ohne Docker und WSL, mit einer **SQLite-Datei** auf dem Server
-(Standard der Konfiguration) oder einem **externen SQL Server** (empfohlen, sobald andere Systeme die Ergebnisse
+dafür unter einem lizenzierten Benutzerkonto läuft. Ohne Docker und WSL, mit einem **externen SQL Server** (Standard der
+Konfiguration; dort verarbeiten andere Systeme die Ergebnisse weiter) oder einer **SQLite-Datei** auf dem Server (kleine
+Installationen, in denen nur die Web-App die Ergebnisse nutzt
 weiterverarbeiten) und Anmeldung über **Microsoft Entra ID**. Die Installation erfolgt per MSI (interaktiv oder still,
 auch über SCCM/Intune). Die Infrastruktur (Adresse, TLS, Datenbank, Anmeldung, EPLAN-Worker) richtet man mit einer
 Konfigurationsoberfläche oder mit der Kommandozeile `pds` ein, die denselben Funktionsumfang hat; auf Server Core ist die
@@ -167,7 +168,7 @@ verwaltete Firewall), ist es nur eine **Warnung**, dann die Ports von Hand freig
   voraus; Windows Server 2022 bringt von Haus aus 4.8 mit).
 - Ein **Benutzerkonto mit EPLAN-Lizenz** für den Worker (Domäne oder lokal), Anforderungen in Abschnitt 7.
 - Nur für SQL Server: ein SQL Server mit **SQL-Login** (gemischter Modus); Windows-Authentifizierung wird nicht
-  unterstützt. Mit SQLite (Standard) braucht es keinen Datenbankserver, nur Platz auf einem lokalen Laufwerk.
+  unterstützt. Mit SQLite braucht es keinen Datenbankserver, nur Platz auf einem lokalen Laufwerk.
 - Eine Entra-App-Registrierung (Abschnitt 4), ein DNS-Name für den Server und ein TLS-Zertifikat dafür (Abschnitt 6).
 - Optional ein Projektordner, lokal oder auf einer Netzfreigabe, mit Leserechten für den Web-Dienst bzw. das
   Computerkonto oder ein eigenes Konto für das Netzlaufwerk (Abschnitt 8). Ohne Projektordner geht nur das Hochladen.
@@ -341,7 +342,7 @@ Administrator.
 | --- | --- | --- |
 | 1. Adresse | **Adresse und TLS** → Hostname (ohne Schema und Port), Öffentlicher Port | `pds config set public.host pds.example.com` |
 | 2. Zertifikat | **Adresse und TLS** → Modus „Zertifikat“ → „PFX-Datei …“, „PEM-Dateien …“ oder „Aus Zertifikatspeicher …“ (Abschnitt 6) | `pds tls import --pfx C:\Temp\pds.pfx` |
-| 3. Datenbank wählen | **Datenbank** → „SQLite (Datei)“ (Standard; Datei leer lassen für `data\pds.db`) oder „SQL Server“ mit Server, Port, Datenbank, Benutzer (SQL-Login), Passwort (Abschnitt 5; SQL Server ist empfohlen, wenn andere Systeme die Ergebnisse lesen sollen) | SQLite: nichts (oder `pds config set db.path D:\PDS\pds.db`); SQL Server: `pds config set db.kind sqlserver`, `pds config set db.server sql01.example.com` (dazu `db.port`, `db.database`, `db.user`; Passwort: `config set db.password`) |
+| 3. Datenbank wählen | **Datenbank** → „SQL Server“ (Standard) mit Server, Port, Datenbank, Benutzer (SQL-Login), Passwort (Abschnitt 5) oder „SQLite (Datei)“ (Datei leer lassen für `data\pds.db`) | SQL Server: `pds config set db.server sql01.example.com` (dazu `db.port`, `db.database`, `db.user`; Passwort: `config set db.password`); SQLite: `pds config set db.kind sqlite` |
 | 4. Datenbank einrichten | nur SQL Server: „Einrichten …“ → Admin-Login und Admin-Passwort (nur im Speicher) oder „SQL-Skript exportieren …“ für die DBAs | nur SQL Server: `pds db setup --admin-user sa` oder `pds db script C:\Temp\setup.sql` |
 | 5. Datenbank prüfen | „Verbindung testen“ | `pds db test` |
 | 6. Anmeldung | **Anmeldung** → Tenant-ID, Client-ID, Client-Secret, „Prüfen“ (Abschnitt 4) | `pds config set oidc.tenant_id <GUID>`, `… oidc.client_id <GUID>`, `config set oidc.client_secret`, `pds oidc test --check-client` |
@@ -433,17 +434,16 @@ OpenID-Connect-Anbieter. Dann bleibt `oidc.tenant_id` ungenutzt.
 ## 5. Datenbank
 
 Die App speichert fachliche Einstellungen, Projekte, Analysen mit ihren Ereignissen, die **Ergebnisse jeder Analyse** und
-die Änderungen durch Admins in **einer** Datenbank: einer **SQLite-Datei** auf diesem Server (Standard der Konfiguration,
-`db.kind = sqlite`) oder einem **SQL Server** (`db.kind = sqlserver`). In der Oberfläche steht die Wahl oben auf der Seite
+die Änderungen durch Admins in **einer** Datenbank: einem **SQL Server** (Standard der Konfiguration, `db.kind = sqlserver`) oder einer
+**SQLite-Datei** auf diesem Server (`db.kind = sqlite`). In der Oberfläche steht die Wahl oben auf der Seite
 **Datenbank**.
 
 ### SQLite oder SQL Server
 
-Die Ergebnisse sind dafür gedacht, dass **andere Systeme** sie weiterverarbeiten. Dafür ist **SQL Server** vorgesehen und
-empfohlen: Dort lesen andere Systeme über ein eigenes Login die Sichten `pds.v_current_*` (unten). SQLite eignet sich für
+Die Ergebnisse sind dafür gedacht, dass **andere Systeme** sie weiterverarbeiten. Dafür ist **SQL Server** vorgesehen (Standard): Dort lesen andere Systeme über ein eigenes Login die Sichten `pds.v_current_*` (unten). SQLite eignet sich für
 Installationen, in denen nur die Web-App, die Downloads und MCP die Ergebnisse nutzen.
 
-| | SQLite (Standard der Konfiguration) | SQL Server (empfohlen) |
+| | SQLite | SQL Server (Standard, empfohlen) |
 | --- | --- | --- |
 | Wann | ein Server ohne eigene Datenbank-Infrastruktur, Ergebnisse nur in der Web-App | Ergebnisse für andere Systeme; vorhandene SQL-Server-Landschaft: DBAs, zentrale Sicherung und Überwachung, Hochverfügbarkeit |
 | Einrichten | nichts: der erste Start legt die Datei an, die Tabellen legt der Dienst beim Start an | Datenbank und Login mit `db setup` oder dem SQL-Skript der DBAs |
@@ -1511,7 +1511,7 @@ Windows-Betrieb ist **fertig**, wenn die Kriterien A bis F erfüllt sind; darunt
 
 ### B. Datenbank und Entra ID einstellen und testen, Health grün, Anmeldung
 
-- [ ] **B0 SQLite (Standard)**: „Verbindung testen“ ⇒ ok („gibt es noch nicht“). Nach dem Speichern zeigt **Status**
+- [ ] **B0 SQLite** (`pds config set db.kind sqlite`): „Verbindung testen“ ⇒ ok („gibt es noch nicht“). Nach dem Speichern zeigt **Status**
   „SQLite: C:\ProgramData\…\data\pds.db“, daneben `-wal` und `-shm`, `icacls …\data` zeigt `NT SERVICE\pds:(OI)(CI)(M)`;
   `pds db backup C:\Temp\pds-test.db` ⇒ 0. Eigener Pfad `D:\PDS\pds.db` wird angelegt; ein UNC-Pfad wird abgelehnt
   (`sqlite_network_path`). Der Wechsel zu SQL Server (B1) warnt vor der leeren Datenbank.

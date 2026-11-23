@@ -50,7 +50,7 @@ fn default_roundtrip() {
     assert!(text.contains("mode = \"certificate\""), "{text}");
     assert!(text.contains("port = 1433"), "{text}");
     // Die Art der Datenbank steht immer in der Datei, damit sie beim Lesen nicht geraten wird
-    assert!(text.contains("kind = \"sqlite\""), "{text}");
+    assert!(text.contains("kind = \"sqlserver\""), "{text}");
     assert_eq!(load(&path).unwrap(), Config::default());
 }
 
@@ -63,7 +63,7 @@ fn default_values_match_contract() {
     assert_eq!(cfg.listen.http_port, 80);
     assert_eq!(cfg.internal.port, 3000);
     assert_eq!(cfg.tls.mode, TlsMode::Certificate);
-    assert_eq!(cfg.db.kind, DbKind::Sqlite);
+    assert_eq!(cfg.db.kind, DbKind::Sqlserver);
     assert_eq!(cfg.db.path, "");
     assert_eq!(cfg.db.port, 1433);
     assert_eq!(cfg.db.database, "pds");
@@ -97,7 +97,7 @@ fn partial_file_uses_defaults() {
     assert_eq!(cfg.db.server, "sql01");
     assert_eq!(cfg.db.port, 1433);
     assert_eq!(cfg.tls.mode, TlsMode::Certificate);
-    // Von vor SQLite: mit Server bleibt es SQL Server
+    // Ohne `kind` mit Server: SQL Server
     assert_eq!(cfg.db.kind, DbKind::Sqlserver);
 }
 
@@ -110,13 +110,13 @@ fn db_kind_of_files_without_it() {
         load(&path).unwrap().db.kind
     };
 
-    // Ohne Server (nie eingerichtet): der neue Standard
-    assert_eq!(kind("schema = 1\n"), DbKind::Sqlite);
+    // Ohne Angabe gilt der Standard SQL Server, mit und ohne Server
+    assert_eq!(kind("schema = 1\n"), DbKind::Sqlserver);
     assert_eq!(
         kind("[db]\nport = 14330\nserver = \"  \"\n"),
-        DbKind::Sqlite
+        DbKind::Sqlserver
     );
-    // Mit Server: SQL Server wie bisher
+    // Mit Server ebenso
     assert_eq!(kind("[db]\nserver = \"sql01\"\n"), DbKind::Sqlserver);
     // Ausdrücklich angegeben gilt die Angabe, auch mit gespeichertem Server
     assert_eq!(

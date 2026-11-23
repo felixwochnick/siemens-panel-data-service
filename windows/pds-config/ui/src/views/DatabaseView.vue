@@ -25,7 +25,7 @@ const t = texts.database
 const { draft, original, markSecretSet } = useDraft()
 const { defaultDbPath } = useAppState()
 
-const kinds: DbKind[] = ['sqlite', 'sqlserver']
+const kinds: DbKind[] = ['sqlserver', 'sqlite']
 const kindItems = kinds.map(kind => ({ value: kind, label: t.kinds[kind].label, description: t.kinds[kind].description }))
 const sqlite = computed(() => draft.value.db.kind === 'sqlite')
 // Gespeichert ist eine andere Art: Nach dem Speichern fände die App eine leere Datenbank vor

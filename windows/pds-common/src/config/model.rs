@@ -255,14 +255,14 @@ pub struct TlsConfig {
     pub acme_eab_hmac: Sealed,
 }
 
-/// Art der Datenbank: eine SQLite-Datei auf diesem Rechner (Standard, wie bei der .NET-Version)
-/// oder SQL Server.
+/// Art der Datenbank: SQL Server (Standard: dort werden die Analyse-Ergebnisse weiterverarbeitet)
+/// oder eine SQLite-Datei auf diesem Rechner (kleine Installationen, Tests).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
 #[serde(rename_all = "lowercase")]
 #[ts(export)]
 pub enum DbKind {
-    #[default]
     Sqlite,
+    #[default]
     Sqlserver,
 }
 
@@ -302,7 +302,7 @@ pub struct DbConfig {
 impl Default for DbConfig {
     fn default() -> Self {
         Self {
-            kind: DbKind::Sqlite,
+            kind: DbKind::Sqlserver,
             path: String::new(),
             server: String::new(),
             port: 1433,
@@ -330,9 +330,8 @@ impl DbConfig {
     }
 }
 
-// Eigenes Lesen nur wegen `kind`: Dateien von vor SQLite kennen das Feld nicht. Mit eingetragenem
-// Server waren sie SQL Server und bleiben es; ohne Server waren sie nie eingerichtet und bekommen
-// den neuen Standard SQLite. Gespeichert wird `kind` danach immer.
+// Eigenes Lesen nur wegen `kind`: Dateien ohne das Feld (aus dem ESWC übernommenes Format) gelten als
+// SQL Server, den Standard des Panel Data Service. Gespeichert wird `kind` danach immer.
 impl<'de> Deserialize<'de> for DbConfig {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         #[derive(Deserialize)]
@@ -367,11 +366,7 @@ impl<'de> Deserialize<'de> for DbConfig {
         }
 
         let stored = Stored::deserialize(deserializer)?;
-        let kind = stored.kind.unwrap_or(if stored.server.trim().is_empty() {
-            DbKind::Sqlite
-        } else {
-            DbKind::Sqlserver
-        });
+        let kind = stored.kind.unwrap_or_default();
         Ok(Self {
             kind,
             path: stored.path,

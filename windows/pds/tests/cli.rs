@@ -158,11 +158,11 @@ fn status_json_unconfigured() {
     let app_secret = env.secret(SecretField::AppSecret).unwrap();
     assert_eq!(app_secret.len(), 64);
     assert!(!text.contains(&app_secret));
-    // `data` für die SQLite-Datenbank, die neue Konfigurationen ohne weitere Angabe verwenden
+    // `data` für eine SQLite-Datenbank, falls sie gewählt wird; Standard ist SQL Server
     for dir in ["tls", "state", "logs", "caddy", "data"] {
         assert!(env.data().join(dir).is_dir(), "{dir}");
     }
-    assert!(text.contains("kind = \"sqlite\""), "{text}");
+    assert!(text.contains("kind = \"sqlserver\""), "{text}");
 
     // Vor dem ersten Dienststart gibt es keinen Status
     let output = env.cmd().args(["status", "--json"]).output().unwrap();
@@ -374,8 +374,9 @@ fn config_validate_lists_missing() {
     assert_eq!(output.status.code(), Some(2), "{output:?}");
     let text = stdout(&output);
     assert!(text.contains("public.host"), "{text}");
-    // Neu eingerichtet ist SQLite der Standard: Bei der Datenbank fehlt nichts
-    assert!(!text.contains("db."), "{text}");
+    // Neu eingerichtet ist SQL Server der Standard: Server und Passwort fehlen noch
+    assert!(text.contains("db.server"), "{text}");
+    assert!(text.contains("db.password"), "{text}");
 }
 
 #[test]

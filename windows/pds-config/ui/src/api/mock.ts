@@ -4,8 +4,8 @@
 // aus, Client-Secret fehlt (Warnung am Feld).
 // `?stale=1` in der Adresse zeigt einen veralteten Status (Dienst abgestürzt), `?broken=1` eine unlesbare
 // config.toml (Dienst `unconfigured`, Befund `config_unreadable` in Status und Prüfung), `?fresh=1` eine neue
-// Installation mit der Standard-Datenbank (SQLite im Datenordner, kein Datenbankpasswort: Wer auf SQL Server
-// wechselt, lässt es von der Einrichtung erzeugen), `?gpo=1` eine per GPO verwaltete Firewall (Speichern
+// Installation, bei der SQLite im Datenordner gewählt ist (Standard ist SQL Server; SQLite zeigt die meisten
+// Sonderfälle; kein Datenbankpasswort: Wer auf SQL Server wechselt, lässt es von der Einrichtung erzeugen), `?gpo=1` eine per GPO verwaltete Firewall (Speichern
 // meldet eine Warnung).
 // EPLAN-Worker: eingerichtet unter EXAMPLE\svc-eplan und läuft; bei `?fresh=1` noch nicht eingerichtet,
 // `?noworker=1` ein MSI ohne Worker. Das Passwort `falsch` lehnt die Anmeldeprüfung ab.
@@ -109,7 +109,7 @@ const saved: Config = {
 }
 
 const mock = {
-  config: fresh() ? { ...saved, db: defaultConfig().db } : saved,
+  config: fresh() ? { ...saved, db: { ...defaultConfig().db, kind: 'sqlite' as const } } : saved,
   certificate: certificate(20, saved.public.host) as CertInfo | null,
   service: { state: 'running', startType: 'auto', delayed: true, account: 'NT SERVICE\\pds' } as ScmInfo,
   state: 'running' as ServiceState,

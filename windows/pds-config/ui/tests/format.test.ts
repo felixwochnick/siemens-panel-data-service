@@ -70,10 +70,10 @@ describe('format', () => {
 })
 
 describe('defaults', () => {
-  it('default_database_is_sqlite', () => {
-    // Wie `DbConfig::default()`: SQLite im Datenordner, SQL-Server-Felder mit ihren Standards
+  it('default_database_is_sqlserver', () => {
+    // Wie `DbConfig::default()`: SQL Server (dort werden die Ergebnisse weiterverarbeitet), SQLite-Pfad leer
     expect(defaultConfig().db).toEqual({
-      kind: 'sqlite',
+      kind: 'sqlserver',
       path: '',
       server: '',
       port: 1433,

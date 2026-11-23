@@ -206,9 +206,13 @@ fn fresh_config_lists_missing_fields() {
         codes.contains(&"public.host:required".to_owned()),
         "{codes:?}"
     );
-    // SQLite ist der Standard: Bei der Datenbank fehlt nichts
+    // SQL Server ist der Standard: Server und Passwort fehlen noch
     assert!(
-        !codes.iter().any(|code| code.starts_with("db.")),
+        codes.contains(&"db.server:required".to_owned()),
+        "{codes:?}"
+    );
+    assert!(
+        codes.contains(&"db.password:required".to_owned()),
         "{codes:?}"
     );
     assert!(
@@ -1404,6 +1408,7 @@ fn db_setup_outcome_json_shape() {
 
 fn sqlite_config(path: &str) -> Config {
     let mut config = Config::default();
+    config.db.kind = config::DbKind::Sqlite;
     config.db.path = path.into();
     config
 }
