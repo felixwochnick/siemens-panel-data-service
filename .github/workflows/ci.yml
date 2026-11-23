@@ -1,6 +1,7 @@
 # JavaScript-Arbeitsbereich (apps/*, packages/*, windows/node-tools, windows/pds-config/ui): Lint, Typprüfung
 # und Tests. Die Integrationstests laufen zweimal: gegen den SQL-Server-Container unten (jede Testdatei legt ihre
 # eigene Datenbank an) und gegen SQLite (Dateien im Temp-Ordner). E2E (Playwright mit Dex und glauth) läuft lokal mit `pnpm test:e2e`, Rust und MSI in windows.yml.
+# Der EPLAN-Worker (worker/) baut hier gegen die Compile-Stubs der EPLAN-API; seine Protokoll-Tests laufen unter .NET 10.
 name: CI
 
 on:
@@ -80,3 +81,20 @@ jobs:
 
       - name: Tests (SQLite)
         run: pnpm test:sqlite
+
+  worker:
+    name: EPLAN-Worker (.NET, gegen Stubs)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Bauen
+        run: dotnet build worker/Pds.EplanWorker.slnx -c Release
+
+      - name: Tests
+        run: dotnet test worker/tests/Pds.EplanWorker.Tests -c Release
