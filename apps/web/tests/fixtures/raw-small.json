@@ -1,0 +1,475 @@
+{
+  "format": 1,
+  "worker": "0.0.0-fake",
+  "eplanVersion": "2025.0.3",
+  "project": {
+    "name": "raw-small",
+    "pageCount": 3
+  },
+  "pages": [
+    {
+      "name": "=A1+S1/1",
+      "isReport": false
+    },
+    {
+      "name": "=A1+S1/2",
+      "isReport": false
+    },
+    {
+      "name": "=A1+S1/3",
+      "isReport": true
+    }
+  ],
+  "connections": [
+    {
+      "id": "c1",
+      "is3d": false,
+      "page": "=A1+S1/1",
+      "definition": "Ader / Draht",
+      "designation": "VD_X500",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "BK",
+      "crossSection": "0,22 mm²",
+      "wireType": "SIENOPYR(90)",
+      "length": "",
+      "partNumbers": [
+        "SIE.123",
+        "SIE.123",
+        "SIE.456"
+      ],
+      "cable": {
+        "name": "-W1",
+        "type": "GSC-01",
+        "wireCountAndCrossSection": "4x0,22"
+      },
+      "start": {
+        "functionName": "=A1+S1-Q1",
+        "pinName": "1",
+        "pinDesignation": "1",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=A1+S1-X1",
+        "pinName": "2",
+        "pinDesignation": "2",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [
+        {
+          "page": "=A1+S1/1",
+          "x": 0,
+          "y": 100
+        },
+        {
+          "page": "=A1+S1/1",
+          "x": 50,
+          "y": 100
+        }
+      ],
+      "startSymbol": {
+        "page": "=A1+S1/1",
+        "x": 0,
+        "y": 100,
+        "pinX": 10,
+        "pinY": 0
+      },
+      "endSymbol": {
+        "page": "=A1+S1/1",
+        "x": 50,
+        "y": 100,
+        "pinX": 0,
+        "pinY": 0
+      }
+    },
+    {
+      "id": "c2",
+      "is3d": false,
+      "page": "=A1+S1/1",
+      "definition": "Ader / Draht",
+      "designation": "VD_X500",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "WH",
+      "crossSection": "0,22 mm²",
+      "wireType": "SIENOPYR(90)",
+      "length": "",
+      "partNumbers": [],
+      "cable": {
+        "name": "-W1",
+        "type": "GSC-01",
+        "wireCountAndCrossSection": "4x0,22"
+      },
+      "start": {
+        "functionName": "=A1+S1-Q1",
+        "pinName": "2",
+        "pinDesignation": "2",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=A1+S1-X1",
+        "pinName": "3",
+        "pinDesignation": "3",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [
+        {
+          "page": "=A1+S1/1",
+          "x": 0,
+          "y": 90
+        },
+        {
+          "page": "=A1+S1/1",
+          "x": 50,
+          "y": 90
+        }
+      ],
+      "startSymbol": {
+        "page": "=A1+S1/1",
+        "x": 0,
+        "y": 90,
+        "pinX": 10,
+        "pinY": 0
+      },
+      "endSymbol": {
+        "page": "=A1+S1/1",
+        "x": 50,
+        "y": 90,
+        "pinX": 0,
+        "pinY": 0
+      }
+    },
+    {
+      "id": "c3",
+      "is3d": false,
+      "page": "=A1+S1/1",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "=A1+S1-K1:A1",
+      "destinationProperty": "=A1+S1-X2:5",
+      "wireNumber": "BU",
+      "crossSection": "1,5 mm²",
+      "wireType": "H07V-K",
+      "length": "",
+      "partNumbers": [
+        "PHX.3044102"
+      ],
+      "cable": null,
+      "start": {
+        "functionName": "=A1+S1-K1",
+        "pinName": "A1",
+        "pinDesignation": "A1",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=A1+S1-X2",
+        "pinName": "5",
+        "pinDesignation": "5",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [
+        {
+          "page": "=A1+S1/1",
+          "x": 100,
+          "y": 50
+        },
+        {
+          "page": "=A1+S1/1",
+          "x": 150,
+          "y": 50
+        }
+      ],
+      "startSymbol": null,
+      "endSymbol": null
+    },
+    {
+      "id": "c4",
+      "is3d": true,
+      "page": "=A1+S1/1",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "=A1+S1-K1:A1",
+      "destinationProperty": "=A1+S1-X2:5",
+      "wireNumber": "BU",
+      "crossSection": "1,5 mm²",
+      "wireType": "H07V-K",
+      "length": "",
+      "partNumbers": [],
+      "cable": {
+        "name": "-W1",
+        "type": "GSC-01",
+        "wireCountAndCrossSection": "4x0,22"
+      },
+      "start": {
+        "functionName": "=A1+S1-K1",
+        "pinName": "A1",
+        "pinDesignation": "A1",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=A1+S1-X2",
+        "pinName": "5",
+        "pinDesignation": "5",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [],
+      "startSymbol": null,
+      "endSymbol": null
+    },
+    {
+      "id": "c5",
+      "is3d": false,
+      "page": "=A1+S1/2",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "RD",
+      "crossSection": "1,5 mm²",
+      "wireType": "H07V-K",
+      "length": "1,2 m",
+      "partNumbers": [],
+      "cable": null,
+      "start": {
+        "functionName": "=A1+S1-A1",
+        "pinName": "X1:1",
+        "pinDesignation": "X1:1",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=A1+S1-M1",
+        "pinName": "U1",
+        "pinDesignation": "U1",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [
+        {
+          "page": "=A1+S1/2",
+          "x": 20,
+          "y": 20,
+          "name": "SH1"
+        }
+      ],
+      "symbols": [
+        {
+          "page": "=A1+S1/2",
+          "x": 10,
+          "y": 20
+        },
+        {
+          "page": "=A1+S1/2",
+          "x": 80,
+          "y": 20
+        }
+      ],
+      "startSymbol": null,
+      "endSymbol": null
+    },
+    {
+      "id": "c6",
+      "is3d": false,
+      "page": "=A1+S1/2",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "GNYE",
+      "crossSection": "1,5 mm²",
+      "wireType": "H07V-K",
+      "length": "",
+      "partNumbers": [],
+      "cable": null,
+      "start": null,
+      "end": null,
+      "shieldings": [],
+      "symbols": [
+        {
+          "page": "=A1+S1/2",
+          "x": 20,
+          "y": 10
+        }
+      ],
+      "startSymbol": null,
+      "endSymbol": null
+    },
+    {
+      "id": "c7",
+      "is3d": false,
+      "page": "=A1+S1/2",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "=VB030+LCM-Q20:1",
+      "destinationProperty": "=VB030+LCM-X5:12",
+      "wireNumber": "1",
+      "crossSection": "2,5 mm²",
+      "wireType": "H07V-K",
+      "length": "",
+      "partNumbers": [],
+      "cable": null,
+      "start": {
+        "functionName": "=VB030+LCM-Q20",
+        "pinName": "1",
+        "pinDesignation": "1",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-X5",
+        "pinName": "12",
+        "pinDesignation": "12",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [],
+      "startSymbol": null,
+      "endSymbol": null
+    }
+  ],
+  "texts": [
+    {
+      "page": "=A1+S1/1",
+      "content": "#",
+      "x": 30,
+      "y": 100,
+      "box": [
+        [
+          29,
+          99
+        ],
+        [
+          31,
+          99
+        ],
+        [
+          31,
+          101
+        ],
+        [
+          29,
+          101
+        ]
+      ],
+      "free": true
+    },
+    {
+      "page": "=A1+S1/1",
+      "content": "Hinweis A",
+      "x": 10,
+      "y": 200,
+      "box": [],
+      "free": true
+    },
+    {
+      "page": "=A1+S1/2",
+      "content": "Text in Gruppe",
+      "x": 0,
+      "y": 0,
+      "box": [],
+      "free": false
+    },
+    {
+      "page": "=A1+S1/2",
+      "content": "Freitext 2",
+      "x": 5,
+      "y": 50,
+      "box": [],
+      "free": true
+    },
+    {
+      "page": "=A1+S1/3",
+      "content": "Bericht",
+      "x": 5,
+      "y": 50,
+      "box": [],
+      "free": true
+    }
+  ],
+  "lines": [
+    {
+      "page": "=A1+S1/1",
+      "x1": 30,
+      "y1": 95,
+      "x2": 30,
+      "y2": 105
+    }
+  ],
+  "shields": [
+    {
+      "page": "=A1+S1/2",
+      "name": "SH1",
+      "x": 20,
+      "y": 20,
+      "variant": 0,
+      "width": 12.5,
+      "height": 4
+    }
+  ],
+  "cableDefinitions": [
+    {
+      "page": "=A1+S1/1",
+      "kind": "cable",
+      "name": "-W1",
+      "x": 5,
+      "y": 120,
+      "definition": "Kabeldefinition",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "type": "GSC-01",
+      "wireCountAndCrossSection": "4x0,22",
+      "length": "5 m",
+      "partNumbers": [
+        "LAPP.1"
+      ],
+      "wires": [
+        "c1",
+        "c2",
+        "c4",
+        "c-missing"
+      ]
+    },
+    {
+      "page": "=A1+S1/2",
+      "kind": "shield",
+      "name": "SH1",
+      "x": 20,
+      "y": 20,
+      "definition": "Schirm",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "type": "",
+      "wireCountAndCrossSection": "",
+      "length": "",
+      "partNumbers": [],
+      "wires": [
+        "c5"
+      ]
+    }
+  ]
+}
