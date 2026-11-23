@@ -394,8 +394,8 @@ fn database_url_keeps_unreserved_characters() {
 // Umgebung der App
 // ---------------------------------------------------------------------------------------------
 
+// Sortiert wie die Schlüssel der `BTreeMap` aus `env_map`.
 const APP_ENV_KEYS: [&str; 18] = [
-    "PDS_VERSION",
     "HOST",
     "NITRO_SHUTDOWN_TIMEOUT",
     "NODE_ENV",
@@ -412,6 +412,7 @@ const APP_ENV_KEYS: [&str; 18] = [
     "NUXT_PUBLIC_MCP_ENABLED",
     "NUXT_PUBLIC_OIDC_PROVIDER_NAME",
     "NUXT_SESSION_COOKIE_SECURE",
+    "PDS_VERSION",
     "PORT",
 ];
 
