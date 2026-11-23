@@ -1,0 +1,1018 @@
+{
+  "format": 1,
+  "worker": "1.0.0",
+  "eplanVersion": "2025.0.3",
+  "project": { "name": "VB030_LCM", "pageCount": 5 },
+  "pages": [
+    { "name": "=VB030+LCM&EFS/5", "isReport": false },
+    { "name": "=VB030+LCM&EFS/7", "isReport": false },
+    { "name": "=VB030+LCM&EFS/8", "isReport": false },
+    { "name": "=VB030+LCM&EFS/9", "isReport": false },
+    { "name": "=VB030+LCM&ETL/1", "isReport": true }
+  ],
+  "connections": [
+    {
+      "id": "16/4101/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/5",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "BK",
+      "crossSection": "2,5 mm²",
+      "wireType": "H07V-K",
+      "length": "",
+      "partNumbers": ["LAPP.4520004"],
+      "cable": null,
+      "start": {
+        "functionName": "=VB030+LCM-X1:1",
+        "pinName": "B",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-Q1",
+        "pinName": "1/L1",
+        "pinDesignation": "1",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [
+        { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 200 },
+        { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 160 }
+      ],
+      "startSymbol": { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 200, "pinX": 0, "pinY": -5 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 160, "pinX": 0, "pinY": 5 }
+    },
+    {
+      "id": "16/4102/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/5",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "BK",
+      "crossSection": "2,5 mm²",
+      "wireType": "H07V-K",
+      "length": "",
+      "partNumbers": ["LAPP.4520004"],
+      "cable": null,
+      "start": {
+        "functionName": "=VB030+LCM-X1:2",
+        "pinName": "B",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-Q1",
+        "pinName": "3/L2",
+        "pinDesignation": "3",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [
+        { "page": "=VB030+LCM&EFS/5", "x": 50, "y": 200 },
+        { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 160 }
+      ],
+      "startSymbol": { "page": "=VB030+LCM&EFS/5", "x": 50, "y": 200, "pinX": 0, "pinY": -5 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 160, "pinX": 10, "pinY": 5 }
+    },
+    {
+      "id": "16/4103/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/5",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "BK",
+      "crossSection": "2,5 mm²",
+      "wireType": "H07V-K",
+      "length": "",
+      "partNumbers": ["LAPP.4520004"],
+      "cable": null,
+      "start": {
+        "functionName": "=VB030+LCM-X1:3",
+        "pinName": "B",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-Q1",
+        "pinName": "5/L3",
+        "pinDesignation": "5",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [
+        { "page": "=VB030+LCM&EFS/5", "x": 60, "y": 200 },
+        { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 160 }
+      ],
+      "startSymbol": { "page": "=VB030+LCM&EFS/5", "x": 60, "y": 200, "pinX": 0, "pinY": -5 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 160, "pinX": 20, "pinY": 5 }
+    },
+    {
+      "id": "16/4104/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/5",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "GNYE",
+      "crossSection": "2,5 mm²",
+      "wireType": "H07V-K",
+      "length": "",
+      "partNumbers": ["LAPP.4520004"],
+      "cable": null,
+      "start": {
+        "functionName": "=VB030+LCM-X1:PE",
+        "pinName": "B",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-XPE:1",
+        "pinName": "1",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [
+        { "page": "=VB030+LCM&EFS/5", "x": 70, "y": 200 },
+        { "page": "=VB030+LCM&EFS/5", "x": 70, "y": 160 }
+      ],
+      "startSymbol": { "page": "=VB030+LCM&EFS/5", "x": 70, "y": 200, "pinX": 0, "pinY": -5 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/5", "x": 70, "y": 160, "pinX": 0, "pinY": 5 }
+    },
+    {
+      "id": "16/4105/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/5",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "=VB030+LCM-Q1:2/T1",
+      "destinationProperty": "=VB030+LCM-K1:1/L1",
+      "wireNumber": "BK",
+      "crossSection": "2,5 mm²",
+      "wireType": "H07V-K",
+      "length": "",
+      "partNumbers": ["LAPP.4520004"],
+      "cable": null,
+      "start": {
+        "functionName": "=VB030+LCM-Q1",
+        "pinName": "2/T1",
+        "pinDesignation": "2",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-K1",
+        "pinName": "1/L1",
+        "pinDesignation": "1",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [
+        { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 160 },
+        { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 100 }
+      ],
+      "startSymbol": { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 160, "pinX": 0, "pinY": -15 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 100, "pinX": 0, "pinY": 5 }
+    },
+    {
+      "id": "16/4106/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/5",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "1",
+      "crossSection": "1,5 mm²",
+      "wireType": "",
+      "length": "5 m",
+      "partNumbers": [],
+      "cable": { "name": "=VB030+LCM-W10", "type": "ÖLFLEX CLASSIC 110", "wireCountAndCrossSection": "3G1,5" },
+      "start": {
+        "functionName": "=VB030+LCM-K1",
+        "pinName": "2/T1",
+        "pinDesignation": "2",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-M1",
+        "pinName": "U1",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [{ "page": "=VB030+LCM&EFS/5", "x": 40, "y": 100 }, { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 30 }],
+      "startSymbol": { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 100, "pinX": 0, "pinY": -15 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 30, "pinX": 0, "pinY": 5 }
+    },
+    {
+      "id": "16/4107/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/5",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "2",
+      "crossSection": "1,5 mm²",
+      "wireType": "",
+      "length": "5 m",
+      "partNumbers": [],
+      "cable": { "name": "=VB030+LCM-W10", "type": "ÖLFLEX CLASSIC 110", "wireCountAndCrossSection": "3G1,5" },
+      "start": {
+        "functionName": "=VB030+LCM-K1",
+        "pinName": "4/T2",
+        "pinDesignation": "4",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-M1",
+        "pinName": "V1",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [{ "page": "=VB030+LCM&EFS/5", "x": 40, "y": 100 }, { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 30 }],
+      "startSymbol": { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 100, "pinX": 10, "pinY": -15 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 30, "pinX": 10, "pinY": 5 }
+    },
+    {
+      "id": "16/4108/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/5",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "GNYE",
+      "crossSection": "1,5 mm²",
+      "wireType": "",
+      "length": "5 m",
+      "partNumbers": [],
+      "cable": { "name": "=VB030+LCM-W10", "type": "ÖLFLEX CLASSIC 110", "wireCountAndCrossSection": "3G1,5" },
+      "start": {
+        "functionName": "=VB030+LCM-XPE:2",
+        "pinName": "2",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-M1",
+        "pinName": "PE",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [
+        { "page": "=VB030+LCM&EFS/5", "x": 80, "y": 160 },
+        { "page": "=VB030+LCM&EFS/5", "x": 80, "y": 45 },
+        { "page": "=VB030+LCM&EFS/5", "x": 60, "y": 45 },
+        { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 30 }
+      ],
+      "startSymbol": { "page": "=VB030+LCM&EFS/5", "x": 80, "y": 160, "pinX": 0, "pinY": -5 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/5", "x": 40, "y": 30, "pinX": 20, "pinY": 5 }
+    },
+    {
+      "id": "16/5106/0",
+      "is3d": true,
+      "page": "",
+      "definition": "",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "",
+      "crossSection": "",
+      "wireType": "",
+      "length": "",
+      "partNumbers": [],
+      "cable": null,
+      "start": {
+        "functionName": "=VB030+LCM-K1",
+        "pinName": "2/T1",
+        "pinDesignation": "2",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-M1",
+        "pinName": "U1",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [],
+      "startSymbol": null,
+      "endSymbol": null
+    },
+    {
+      "id": "16/4201/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/7",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "BU",
+      "crossSection": "0,75 mm²",
+      "wireType": "H05V-K",
+      "length": "",
+      "partNumbers": ["LAPP.4510032"],
+      "cable": null,
+      "start": {
+        "functionName": "=VB030+LCM-X2:1",
+        "pinName": "B",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-K1",
+        "pinName": "A1",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [
+        { "page": "=VB030+LCM&EFS/7", "x": 40, "y": 200 },
+        { "page": "=VB030+LCM&EFS/7", "x": 40, "y": 150 }
+      ],
+      "startSymbol": { "page": "=VB030+LCM&EFS/7", "x": 40, "y": 200, "pinX": 0, "pinY": -5 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/7", "x": 40, "y": 150, "pinX": 0, "pinY": 5 }
+    },
+    {
+      "id": "16/4202/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/7",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "BU",
+      "crossSection": "0,75 mm²",
+      "wireType": "H05V-K",
+      "length": "",
+      "partNumbers": ["LAPP.4510032"],
+      "cable": null,
+      "start": {
+        "functionName": "=VB030+LCM-K1",
+        "pinName": "A2",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-X2:2",
+        "pinName": "B",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [
+        { "page": "=VB030+LCM&EFS/7", "x": 40, "y": 150 },
+        { "page": "=VB030+LCM&EFS/7", "x": 50, "y": 200 }
+      ],
+      "startSymbol": { "page": "=VB030+LCM&EFS/7", "x": 40, "y": 150, "pinX": 0, "pinY": -10 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/7", "x": 50, "y": 200, "pinX": 0, "pinY": -5 }
+    },
+    {
+      "id": "16/4203/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/7",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "BU",
+      "crossSection": "0,5 mm²",
+      "wireType": "H05V-K",
+      "length": "",
+      "partNumbers": ["PXC.3044076", "PXC.3044076"],
+      "cable": null,
+      "start": {
+        "functionName": "=VB030+LCM-A1-B150:1",
+        "pinName": "1",
+        "pinDesignation": "1",
+        "plugAutomatic": "X531",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-X2:3",
+        "pinName": "A",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [
+        { "page": "=VB030+LCM&EFS/7", "x": 120, "y": 120 },
+        { "page": "=VB030+LCM&EFS/7", "x": 120, "y": 200 }
+      ],
+      "startSymbol": { "page": "=VB030+LCM&EFS/7", "x": 120, "y": 120, "pinX": 0, "pinY": 0 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/7", "x": 120, "y": 200, "pinX": 0, "pinY": -5 }
+    },
+    {
+      "id": "16/4204/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/7",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "BU",
+      "crossSection": "0,5 mm²",
+      "wireType": "H05V-K",
+      "length": "",
+      "partNumbers": ["PXC.3044076"],
+      "cable": null,
+      "start": {
+        "functionName": "=VB030+LCM-A1-B150:2",
+        "pinName": "2",
+        "pinDesignation": "2",
+        "plugAutomatic": "",
+        "plugManual": "X531",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-X2:4",
+        "pinName": "A",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [
+        { "page": "=VB030+LCM&EFS/7", "x": 130, "y": 120 },
+        { "page": "=VB030+LCM&EFS/7", "x": 130, "y": 200 }
+      ],
+      "startSymbol": { "page": "=VB030+LCM&EFS/7", "x": 130, "y": 120, "pinX": 0, "pinY": 0 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/7", "x": 130, "y": 200, "pinX": 0, "pinY": -5 }
+    },
+    {
+      "id": "16/4205/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/7",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "BU",
+      "crossSection": "0,75 mm²",
+      "wireType": "H05V-K",
+      "length": "",
+      "partNumbers": ["LAPP.4510032"],
+      "cable": null,
+      "start": {
+        "functionName": "=VB030+LCM-K530:12",
+        "pinName": "12",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-X2:5",
+        "pinName": "A",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [
+        { "page": "=VB030+LCM&EFS/7", "x": 160, "y": 120 },
+        { "page": "=VB030+LCM&EFS/7", "x": 160, "y": 200 }
+      ],
+      "startSymbol": { "page": "=VB030+LCM&EFS/7", "x": 160, "y": 120, "pinX": 0, "pinY": 5 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/7", "x": 160, "y": 200, "pinX": 0, "pinY": -5 }
+    },
+    {
+      "id": "16/4206/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/7",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "BU",
+      "crossSection": "0,75 mm²",
+      "wireType": "H05V-K",
+      "length": "",
+      "partNumbers": ["LAPP.4510032"],
+      "cable": null,
+      "start": {
+        "functionName": "=VB030+LCM-X2:6",
+        "pinName": "B",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": null,
+      "shieldings": [],
+      "symbols": [
+        { "page": "=VB030+LCM&EFS/7", "x": 180, "y": 200 },
+        { "page": "=VB030+LCM&EFS/7", "x": 180, "y": 170 }
+      ],
+      "startSymbol": { "page": "=VB030+LCM&EFS/7", "x": 180, "y": 200, "pinX": 0, "pinY": -5 },
+      "endSymbol": null
+    },
+    {
+      "id": "16/4301/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/8",
+      "definition": "Ader / Draht",
+      "designation": "VD_X500",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "WH",
+      "crossSection": "0,5 mm²",
+      "wireType": "LiYCY",
+      "length": "",
+      "partNumbers": [],
+      "cable": { "name": "=VB030+LCM-W20", "type": "LiYCY", "wireCountAndCrossSection": "2x0,5" },
+      "start": {
+        "functionName": "=VB030+LCM-B1",
+        "pinName": "1",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-A2:2",
+        "pinName": "2",
+        "pinDesignation": "",
+        "plugAutomatic": "X11",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [{ "page": "=VB030+LCM&EFS/8", "x": 100, "y": 150, "name": "=VB030+LCM-SH1" }],
+      "symbols": [
+        { "page": "=VB030+LCM&EFS/8", "x": 110, "y": 215 },
+        { "page": "=VB030+LCM&EFS/8", "x": 110, "y": 85 }
+      ],
+      "startSymbol": { "page": "=VB030+LCM&EFS/8", "x": 110, "y": 215, "pinX": 0, "pinY": -5 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/8", "x": 110, "y": 85, "pinX": 0, "pinY": 5 }
+    },
+    {
+      "id": "16/4302/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/8",
+      "definition": "Ader / Draht",
+      "designation": "VD_X500",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "BN",
+      "crossSection": "0,5 mm²",
+      "wireType": "LiYCY",
+      "length": "",
+      "partNumbers": [],
+      "cable": { "name": "=VB030+LCM-W20", "type": "LiYCY", "wireCountAndCrossSection": "2x0,5" },
+      "start": {
+        "functionName": "=VB030+LCM-B1",
+        "pinName": "2",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-A2:3",
+        "pinName": "3",
+        "pinDesignation": "",
+        "plugAutomatic": "X11",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [
+        { "page": "=VB030+LCM&EFS/8", "x": 110, "y": 215 },
+        { "page": "=VB030+LCM&EFS/8", "x": 110, "y": 85 }
+      ],
+      "startSymbol": { "page": "=VB030+LCM&EFS/8", "x": 110, "y": 215, "pinX": 10, "pinY": -5 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/8", "x": 110, "y": 85, "pinX": 10, "pinY": 5 }
+    },
+    {
+      "id": "16/4303/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/8",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "GNYE",
+      "crossSection": "1,5 mm²",
+      "wireType": "H07V-K",
+      "length": "",
+      "partNumbers": [],
+      "cable": null,
+      "start": {
+        "functionName": "=VB030+LCM-SH1",
+        "pinName": "1",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": true
+      },
+      "end": {
+        "functionName": "=VB030+LCM-XPE:3",
+        "pinName": "3",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [
+        { "page": "=VB030+LCM&EFS/8", "x": 100, "y": 150 },
+        { "page": "=VB030+LCM&EFS/8", "x": 85, "y": 150 },
+        { "page": "=VB030+LCM&EFS/8", "x": 85, "y": 95 }
+      ],
+      "startSymbol": { "page": "=VB030+LCM&EFS/8", "x": 100, "y": 150, "pinX": 0, "pinY": 0 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/8", "x": 85, "y": 95, "pinX": 0, "pinY": 0 }
+    },
+    {
+      "id": "16/4304/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/8",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "WH",
+      "crossSection": "0,22 mm²",
+      "wireType": "",
+      "length": "",
+      "partNumbers": [],
+      "cable": { "name": "=VB030+LCM-W21", "type": "GSC-01", "wireCountAndCrossSection": "2x0,22" },
+      "start": {
+        "functionName": "=VB030+LCM-B2",
+        "pinName": "1",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-A2:4",
+        "pinName": "4",
+        "pinDesignation": "",
+        "plugAutomatic": "X11",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [
+        { "page": "=VB030+LCM&EFS/8", "x": 153, "y": 215 },
+        { "page": "=VB030+LCM&EFS/8", "x": 153, "y": 85 }
+      ],
+      "startSymbol": { "page": "=VB030+LCM&EFS/8", "x": 153, "y": 215, "pinX": 0, "pinY": -5 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/8", "x": 153, "y": 85, "pinX": 0, "pinY": 5 }
+    },
+    {
+      "id": "16/4305/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/8",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "BN",
+      "crossSection": "0,22 mm²",
+      "wireType": "",
+      "length": "",
+      "partNumbers": [],
+      "cable": { "name": "=VB030+LCM-W21", "type": "GSC-01", "wireCountAndCrossSection": "2x0,22" },
+      "start": {
+        "functionName": "=VB030+LCM-B2",
+        "pinName": "2",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-A2:5",
+        "pinName": "5",
+        "pinDesignation": "",
+        "plugAutomatic": "X11",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [
+        { "page": "=VB030+LCM&EFS/8", "x": 153, "y": 215 },
+        { "page": "=VB030+LCM&EFS/8", "x": 157, "y": 85 }
+      ],
+      "startSymbol": { "page": "=VB030+LCM&EFS/8", "x": 153, "y": 215, "pinX": 4, "pinY": -5 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/8", "x": 157, "y": 85, "pinX": 0, "pinY": 5 }
+    },
+    {
+      "id": "16/4401/0",
+      "is3d": false,
+      "page": "=VB030+LCM&EFS/9",
+      "definition": "Ader / Draht",
+      "designation": "",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "wireNumber": "GNYE",
+      "crossSection": "16 mm²",
+      "wireType": "H07V-K",
+      "length": "",
+      "partNumbers": ["LAPP.4520014", ""],
+      "cable": { "name": "=VB030+LCM-W5", "type": "H07V-K", "wireCountAndCrossSection": "1x16" },
+      "start": {
+        "functionName": "=VB030+LCM-E1",
+        "pinName": "PE",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "end": {
+        "functionName": "=VB030+LCM-XPE:4",
+        "pinName": "4",
+        "pinDesignation": "",
+        "plugAutomatic": "",
+        "plugManual": "",
+        "parentIsShield": false
+      },
+      "shieldings": [],
+      "symbols": [{ "page": "=VB030+LCM&EFS/9", "x": 60, "y": 60 }, { "page": "=VB030+LCM&EFS/9", "x": 60, "y": 140 }],
+      "startSymbol": { "page": "=VB030+LCM&EFS/9", "x": 60, "y": 60, "pinX": 0, "pinY": 5 },
+      "endSymbol": { "page": "=VB030+LCM&EFS/9", "x": 60, "y": 140, "pinX": 0, "pinY": -5 }
+    }
+  ],
+  "texts": [
+    {
+      "page": "=VB030+LCM&EFS/5",
+      "content": "# = kurzschlusssichere Verlegung",
+      "x": 200,
+      "y": 20,
+      "box": [[200, 20], [257.6, 20], [257.6, 22.5], [200, 22.5]],
+      "free": true
+    },
+    {
+      "page": "=VB030+LCM&EFS/5",
+      "content": "Einspeisung 400 V AC",
+      "x": 20,
+      "y": 260,
+      "box": [[20, 260], [56, 260], [56, 262.5], [20, 262.5]],
+      "free": true
+    },
+    {
+      "page": "=VB030+LCM&EFS/5",
+      "content": "#",
+      "x": 41.5,
+      "y": 178,
+      "box": [[41.5, 178], [43.3, 178], [43.3, 180.5], [41.5, 180.5]],
+      "free": true
+    },
+    {
+      "page": "=VB030+LCM&EFS/5",
+      "content": "RDY",
+      "x": 45,
+      "y": 150,
+      "box": [[45, 150], [50.4, 150], [50.4, 152.5], [45, 152.5]],
+      "free": false
+    },
+    {
+      "page": "=VB030+LCM&EFS/7",
+      "content": "Brücke X2:1–X2:2 bauseits",
+      "x": 120,
+      "y": 180,
+      "box": [[120, 180], [165, 180], [165, 182.5], [120, 182.5]],
+      "free": true
+    },
+    {
+      "page": "=VB030+LCM&EFS/7",
+      "content": "A1",
+      "x": 115,
+      "y": 125,
+      "box": [[115, 125], [118.6, 125], [118.6, 127.5], [115, 127.5]],
+      "free": false
+    },
+    {
+      "page": "=VB030+LCM&EFS/7",
+      "content": "Steuerspannung 24 V DC",
+      "x": 20,
+      "y": 260,
+      "box": [[20, 260], [59.6, 260], [59.6, 262.5], [20, 262.5]],
+      "free": true
+    },
+    {
+      "page": "=VB030+LCM&EFS/7",
+      "content": "Klemme X2:6 Reserve",
+      "x": 20,
+      "y": 180,
+      "box": [[20, 180], [54.2, 180], [54.2, 182.5], [20, 182.5]],
+      "free": true
+    },
+    {
+      "page": "=VB030+LCM&EFS/8",
+      "content": "Schirm beidseitig auflegen",
+      "x": 100,
+      "y": 140,
+      "box": [[100, 140], [146.8, 140], [146.8, 142.5], [100, 142.5]],
+      "free": true
+    },
+    {
+      "page": "=VB030+LCM&EFS/8",
+      "content": "Analogsignale Sensoren",
+      "x": 20,
+      "y": 260,
+      "box": [[20, 260], [59.6, 260], [59.6, 262.5], [20, 262.5]],
+      "free": true
+    },
+    {
+      "page": "=VB030+LCM&EFS/9",
+      "content": "",
+      "x": 10,
+      "y": 10,
+      "box": [[10, 10], [10, 10], [10, 12.5], [10, 12.5]],
+      "free": true
+    },
+    {
+      "page": "=VB030+LCM&EFS/9",
+      "content": "Erdung Gehäuse",
+      "x": 20,
+      "y": 260,
+      "box": [[20, 260], [45.2, 260], [45.2, 262.5], [20, 262.5]],
+      "free": true
+    },
+    {
+      "page": "=VB030+LCM&ETL/1",
+      "content": "Klemmenplan =VB030+LCM-X1",
+      "x": 20,
+      "y": 280,
+      "box": [[20, 280], [65, 280], [65, 282.5], [20, 282.5]],
+      "free": true
+    }
+  ],
+  "lines": [
+    { "page": "=VB030+LCM&EFS/7", "x1": 100, "y1": 60, "x2": 220, "y2": 60 },
+    { "page": "=VB030+LCM&EFS/7", "x1": 220, "y1": 60, "x2": 220, "y2": 140 },
+    { "page": "=VB030+LCM&EFS/7", "x1": 220, "y1": 140, "x2": 100, "y2": 140 },
+    { "page": "=VB030+LCM&EFS/7", "x1": 100, "y1": 140, "x2": 100, "y2": 60 },
+    { "page": "=VB030+LCM&EFS/8", "x1": 150, "y1": 170, "x2": 164, "y2": 170 },
+    { "page": "=VB030+LCM&EFS/8", "x1": 150, "y1": 170, "x2": 150, "y2": 168 },
+    { "page": "=VB030+LCM&EFS/8", "x1": 164, "y1": 170, "x2": 164, "y2": 168 },
+    { "page": "=VB030+LCM&EFS/8", "x1": 152, "y1": 169, "x2": 154, "y2": 171 },
+    { "page": "=VB030+LCM&EFS/8", "x1": 156, "y1": 169, "x2": 158, "y2": 171 },
+    { "page": "=VB030+LCM&EFS/8", "x1": 160, "y1": 169, "x2": 162, "y2": 171 }
+  ],
+  "shields": [
+    {
+      "page": "=VB030+LCM&EFS/8",
+      "name": "=VB030+LCM-SH1",
+      "x": 100,
+      "y": 150,
+      "variant": 0,
+      "width": 30,
+      "height": 1.5
+    }
+  ],
+  "cableDefinitions": [
+    {
+      "page": "=VB030+LCM&EFS/5",
+      "kind": "cable",
+      "name": "=VB030+LCM-W10",
+      "x": 30,
+      "y": 60,
+      "definition": "Kabeldefinition",
+      "sourceProperty": "=VB030+LCM-K1",
+      "destinationProperty": "=VB030+LCM-M1",
+      "type": "ÖLFLEX CLASSIC 110",
+      "wireCountAndCrossSection": "3G1,5",
+      "length": "5 m",
+      "partNumbers": ["LAPP.1119303"],
+      "wires": ["16/4106/0", "16/4107/0", "16/4108/0", "16/5106/0"]
+    },
+    {
+      "page": "=VB030+LCM&EFS/7",
+      "kind": "cable",
+      "name": "=VB030+LCM-W10",
+      "x": 30,
+      "y": 230,
+      "definition": "Kabeldefinition",
+      "sourceProperty": "=VB030+LCM-K1",
+      "destinationProperty": "=VB030+LCM-M1",
+      "type": "ÖLFLEX CLASSIC 110",
+      "wireCountAndCrossSection": "3G1,5",
+      "length": "5 m",
+      "partNumbers": ["LAPP.1119303"],
+      "wires": ["16/4106/0", "16/4107/0", "16/4108/0", "16/5106/0"]
+    },
+    {
+      "page": "=VB030+LCM&EFS/8",
+      "kind": "cable",
+      "name": "=VB030+LCM-W20",
+      "x": 100,
+      "y": 220,
+      "definition": "Kabeldefinition",
+      "sourceProperty": "=VB030+LCM-B1",
+      "destinationProperty": "=VB030+LCM-A2",
+      "type": "LiYCY",
+      "wireCountAndCrossSection": "2x0,5",
+      "length": "",
+      "partNumbers": ["LAPP.0034502"],
+      "wires": ["16/4301/0", "16/4302/0"]
+    },
+    {
+      "page": "=VB030+LCM&EFS/8",
+      "kind": "shield",
+      "name": "=VB030+LCM-SH1",
+      "x": 100,
+      "y": 150,
+      "definition": "Abschirmung, Kabeldefinition",
+      "sourceProperty": "",
+      "destinationProperty": "",
+      "type": "",
+      "wireCountAndCrossSection": "",
+      "length": "",
+      "partNumbers": [],
+      "wires": ["16/4303/0"]
+    },
+    {
+      "page": "=VB030+LCM&EFS/8",
+      "kind": "cable",
+      "name": "=VB030+LCM-W21",
+      "x": 150,
+      "y": 220,
+      "definition": "Kabeldefinition",
+      "sourceProperty": "=VB030+LCM-B2",
+      "destinationProperty": "=VB030+LCM-A2",
+      "type": "GSC-01",
+      "wireCountAndCrossSection": "2x0,22",
+      "length": "",
+      "partNumbers": [],
+      "wires": ["16/4304/0", "16/4305/0"]
+    },
+    {
+      "page": "=VB030+LCM&EFS/9",
+      "kind": "cable",
+      "name": "=VB030+LCM-W5",
+      "x": 70,
+      "y": 100,
+      "definition": "Kabeldefinition",
+      "sourceProperty": "=VB030+LCM-XPE",
+      "destinationProperty": "=VB030+LCM-E1",
+      "type": "H07V-K",
+      "wireCountAndCrossSection": "1x16",
+      "length": "0,8 m",
+      "partNumbers": [],
+      "wires": ["16/4401/0"]
+    }
+  ]
+}
